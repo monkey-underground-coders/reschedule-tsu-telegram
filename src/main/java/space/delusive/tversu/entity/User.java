@@ -6,9 +6,9 @@ public class User extends Entity {
     private String group;
 
     public User(long id, String faculty, String group) {
-        id = id;
-        faculty = faculty;
-        group = group;
+        this.id = id;
+        this.faculty = faculty;
+        this.group = group;
     }
 
     public long getId() {
