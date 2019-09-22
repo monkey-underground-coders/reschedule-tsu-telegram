@@ -1,7 +1,9 @@
 package space.delusive.tversu.dao;
 
-import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 public interface IFacultyDao {
-    Collection<String> getFaculties();
+    List<String> getFaculties();
+    Set<String> getPrograms(String faculty);
 }

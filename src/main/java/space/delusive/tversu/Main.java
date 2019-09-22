@@ -11,12 +11,13 @@ import space.delusive.tversu.manager.impl.PropertiesManager;
 public class Main {
     private static final Logger logger = LogManager.getLogger(Main.class);
     private static final IDataManager settings = new PropertiesManager("/timingbot.properties");
+    private static final IDataManager messages = new PropertiesManager("/messages_ru.properties");
 
     public static void main(String[] args) {
         ApiContextInitializer.init();
         TelegramBotsApi api = new TelegramBotsApi();
         try {
-            api.registerBot(new TversuTimingBot(settings));
+            api.registerBot(new TversuTimingBot(settings, messages));
             logger.info("TverSU Timing Bot started successfully!");
         } catch (TelegramApiRequestException e) {
             logger.error(e);

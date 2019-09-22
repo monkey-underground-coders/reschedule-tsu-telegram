@@ -8,13 +8,15 @@ import space.delusive.tversu.exception.NotSuccessRequestException;
 import space.delusive.tversu.manager.IDataManager;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Получение инфы о факультетах с rest-сервера
  *
  * @author Delusive-
- * @version 1.0
+ * @version 1.2
  */
 public class RestFacultyDao implements IFacultyDao {
     private final IDataManager config;
@@ -30,7 +32,7 @@ public class RestFacultyDao implements IFacultyDao {
      * @throws NotSuccessRequestException Если статус ответа не из "двухсотых"
      */
     @Override
-    public Collection<String> getFaculties() throws NotSuccessRequestException {
+    public List<String> getFaculties() throws NotSuccessRequestException {
         HttpResponse<JsonNode> response = Unirest.get(config.getString("rest.get.faculties.url")).asJson();
         if (!response.isSuccess())
             throw new NotSuccessRequestException(String.format("Status: %s; Text: %s", response.getStatus(), response.getStatusText()));
@@ -40,5 +42,19 @@ public class RestFacultyDao implements IFacultyDao {
             faculties.add(jsonFaculties.getString(i));
         }
         return faculties;
+    }
+
+
+    @Override
+    public Set<String> getPrograms(String faculty) {
+        HttpResponse<JsonNode> response = Unirest.get(config.getString("rest.get.groups.url")).routeParam("faculty", faculty).asJson();
+        if (!response.isSuccess())
+            throw new NotSuccessRequestException(String.format("Status: %s; Text: %s", response.getStatus(), response.getStatusText()));
+        var jsonGroups = response.getBody().getObject().getJSONArray("groups");
+        var programs = new HashSet<String>();
+        for (int i = 0; i < jsonGroups.length(); i++) {
+            programs.add(jsonGroups.getJSONObject(i).getString("level"));
+        }
+        return programs;
     }
 }

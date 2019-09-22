@@ -5,15 +5,14 @@ import space.delusive.tversu.connection.IDatabaseManager;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Properties;
 
 public class MysqlDatabaseManager implements IDatabaseManager {
     private final MysqlDataSource mysqlDataSource = new MysqlDataSource();
 
-    public MysqlDatabaseManager(Properties props) {
-        mysqlDataSource.setUrl(props.getProperty("db.url"));
-        mysqlDataSource.setUser(props.getProperty("db.username"));
-        mysqlDataSource.setPassword(props.getProperty("db.password"));
+    public MysqlDatabaseManager(String url, String username, String password) {
+        mysqlDataSource.setUrl(url);
+        mysqlDataSource.setUser(username);
+        mysqlDataSource.setPassword(password);
     }
 
     @Override

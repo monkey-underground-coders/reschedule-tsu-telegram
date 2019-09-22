@@ -7,13 +7,14 @@ import space.delusive.tversu.manager.IDataManager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 /**
  * Класс для работы с property-файлами
  *
  * @author Delusive-
- * @version 1.0
+ * @version 1.1
  */
 public class PropertiesManager implements IDataManager {
     private final Properties properties = new Properties();
@@ -50,7 +51,7 @@ public class PropertiesManager implements IDataManager {
      */
     public String getString(String key) throws PropertiesException {
         baseCheck(key);
-        return properties.getProperty(key);
+        return new String(properties.getProperty(key).getBytes(StandardCharsets.ISO_8859_1));
     }
 
     private void baseCheck(String... keys) throws PropertiesException {
