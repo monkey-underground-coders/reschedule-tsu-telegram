@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Для удобной работы с клавиатурками, шоб по 1к раз не писать одно и то же =="
  * @author Delusive-
- * @version 1.0
+ * @version 1.1
  */
 public class KeyboardManager implements IKeyboardManager {
     private ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
@@ -41,6 +41,7 @@ public class KeyboardManager implements IKeyboardManager {
      */
     @Override
     public ReplyKeyboardMarkup getKeyboard() {
+        if (!keyboard.contains(keyboardRow)) keyboard.add(keyboardRow);
         keyboardMarkup.setKeyboard(keyboard);
         return keyboardMarkup;
     }

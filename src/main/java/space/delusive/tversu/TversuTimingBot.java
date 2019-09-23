@@ -46,7 +46,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         this.facultyDao = new RestFacultyDao(config);
         String dbUrl = config.getString("db.url");
         String dbUsername = config.getString("db.username");
-        String dbPassword = config.getString("db.,password");
+        String dbPassword = config.getString("db.password");
         IDatabaseManager databaseManager = new MysqlDatabaseManager(dbUrl, dbUsername, dbPassword);
         userDao = new SqlUserDao(databaseManager);
     }
@@ -86,8 +86,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             case CHOOSING_SUBGROUP:
                 response = messageOnRegistering(msg, user);
                 break;
+            case MAIN_MENU:
             default:
-                response = sendMenuMessage();
+                response = sendMenuMessage(msg, user);
         }
         execute(response);
     }
@@ -97,6 +98,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         userDao.addUser(new User(userId, START, null, null, 0, null, 0, currDate, currDate));
         return userDao.getUserById(userId);
     }
+
 
     // register messages:
 
@@ -144,11 +146,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             response.setText(messages.getString("invalid.faculty"));
             response.setReplyMarkup(getFacultiesKeyboard());
         } else {
-            response.setText(messages.getString("choose.program"));
-            response.setReplyMarkup(getProgramKeyboard(request.getText()));
             user.setFaculty(request.getText());
             user.setState(CHOOSING_PROGRAM);
             userDao.updateUser(user);
+            response.setText(messages.getString("choose.program"));
+            response.setReplyMarkup(getProgramKeyboard(request.getText()));
         }
         return response;
     }
@@ -161,11 +163,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             response.setText(messages.getString("invalid.program"));
             response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
         } else {
-            response.setText(messages.getString("choose.course"));
-            response.setReplyMarkup(getCoursesKeyboard(user));
             user.setProgram(request.getText());
             user.setState(CHOOSING_COURSE);
             userDao.updateUser(user);
+            response.setText(messages.getString("choose.course"));
+            response.setReplyMarkup(getCoursesKeyboard(user));
         }
         return response;
     }
@@ -177,11 +179,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         try {
             int course = Integer.parseInt(request.getText());
             if (facultyDao.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
-                response.setText(messages.getString("choose.group"));
-                response.setReplyMarkup(getGroupsKeyboard(user));
                 user.setState(CHOOSING_GROUP);
                 user.setCourse(course);
                 userDao.updateUser(user);
+                response.setText(messages.getString("choose.group"));
+                response.setReplyMarkup(getGroupsKeyboard(user));
             } else {
                 throw new NumberFormatException();
             }
@@ -213,13 +215,33 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 response.setText(messages.getString("choose.subgroup"));
                 response.setReplyMarkup(getSubgroupsKeyboard(user));
             }
+            userDao.updateUser(user);
         }
         return response;
     }
 
     private SendMessage messageOnChoosingSubgroup(Message request, User user) {
-
-        return null;
+        SendMessage response = new SendMessage();
+        response.setChatId(request.getChatId())
+                .enableMarkdown(true);
+        int subgroups = facultyDao.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+        int subgroup;
+        try {
+            subgroup = Integer.parseInt(request.getText());
+            if (subgroup > subgroups || subgroup < 1) {
+                throw new NumberFormatException();
+            } else {
+                user.setState(MAIN_MENU);
+                user.setSubgroup(subgroup);
+                userDao.updateUser(user);
+                response.setText(messages.getString("register.end"));
+                response.setReplyMarkup(getMenuKeyboard());
+            }
+        } catch (NumberFormatException e) {
+            response.setText(messages.getString("invalid.subgroup"));
+            response.setReplyMarkup(getSubgroupsKeyboard(user));
+        }
+        return response;
     }
 
     // :register messages
@@ -267,9 +289,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // main menu messages:
 
-    private SendMessage sendMenuMessage() {
+    private SendMessage sendMenuMessage(Message request, User user) {
         //TODO
-        return null;
+        SendMessage response = new SendMessage();
+        response.setChatId(request.getChatId())
+                .enableMarkdown(true)
+                .setReplyMarkup(getMenuKeyboard());
+        return response;
     }
 
     // :main menu messages
@@ -279,7 +305,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private ReplyKeyboardMarkup getMenuKeyboard() {
         //TODO
-        return null;
+        IKeyboardManager keyboardManager = new KeyboardManager(1);
+        keyboardManager.addItem("Action one");
+        keyboardManager.addItem("Action two");
+        keyboardManager.addItem("Action three");
+        return keyboardManager.getKeyboard();
     }
 
     // :main menu keyboards
