@@ -19,7 +19,7 @@ public class SqlUserDao implements IUserDao {
     @Override
     public User getUserById(long id) {
         try (Connection connection = databaseManager.getConnection()) {
-            String query = "SELECT `id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date` FROM `users` WHERE `id` = ?";
+            String query = "SELECT `id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course` FROM `users` WHERE `id` = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setLong(1, id);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -36,7 +36,7 @@ public class SqlUserDao implements IUserDao {
     @Override
     public boolean addUser(User user) {
         try (Connection connection = databaseManager.getConnection()) {
-            String query = "INSERT INTO `users` (`id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String query = "INSERT INTO `users` (`id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setLong(1, user.getId());
                 preparedStatement.setInt(2, user.getState());
@@ -45,6 +45,8 @@ public class SqlUserDao implements IUserDao {
                 preparedStatement.setInt(5, user.getSubgroup());
                 preparedStatement.setDate(6, user.getRegisterDate());
                 preparedStatement.setDate(7, user.getLastMessageDate());
+                preparedStatement.setString(8, user.getProgram());
+                preparedStatement.setInt(9, user.getCourse());
                 preparedStatement.executeUpdate();
                 return true;
             }
@@ -57,7 +59,7 @@ public class SqlUserDao implements IUserDao {
     @Override
     public boolean updateUser(User user) {
         try (Connection connection = databaseManager.getConnection()) {
-            String query = "UPDATE `users` SET `state` = ?, `faculty` = ?, `group` = ?, `subgroup` = ?, `register_date` = ?, `last_message_date` = ? WHERE `id` = ?";
+            String query = "UPDATE `users` SET `state` = ?, `faculty` = ?, `group` = ?, `subgroup` = ?, `register_date` = ?, `last_message_date` = ?, `program` = ?, `course` = ? WHERE `id` = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setInt(1, user.getState());
                 preparedStatement.setString(2, user.getFaculty());
@@ -65,7 +67,9 @@ public class SqlUserDao implements IUserDao {
                 preparedStatement.setInt(4, user.getSubgroup());
                 preparedStatement.setDate(5, user.getRegisterDate());
                 preparedStatement.setDate(6, user.getLastMessageDate());
-                preparedStatement.setLong(7, user.getId());
+                preparedStatement.setString(7, user.getProgram());
+                preparedStatement.setInt(8, user.getCourse());
+                preparedStatement.setLong(9, user.getId());
                 preparedStatement.executeUpdate();
                 return true;
             }
@@ -79,10 +83,12 @@ public class SqlUserDao implements IUserDao {
         long id = resultSet.getLong("id");
         int state = resultSet.getInt("state");
         String faculty = resultSet.getString("faculty");
+        String program = resultSet.getString("program");
+        int course = resultSet.getInt("course");
         String group = resultSet.getString("group");
         int subgroup = resultSet.getInt("subgroup");
         Date registerDate = resultSet.getDate("register_date");
         Date lastMessageDate = resultSet.getDate("last_message_date");
-        return new User(id, state, faculty, group, subgroup, registerDate, lastMessageDate);
+        return new User(id, state, faculty, program, course, group, subgroup, registerDate, lastMessageDate);
     }
 }

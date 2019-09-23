@@ -6,15 +6,19 @@ public class User extends Entity {
     private long id;
     private int state;
     private String faculty;
+    private String program;
+    private int course;
     private String group;
     private int subgroup;
     private Date registerDate;
     private Date lastMessageDate;
 
-    public User(long id, int state, String faculty, String group, int subgroup, Date registerDate, Date lastMessageDate) {
+    public User(long id, int state, String faculty, String program, int course, String group, int subgroup, Date registerDate, Date lastMessageDate) {
         this.id = id;
         this.state = state;
         this.faculty = faculty;
+        this.program = program;
+        this.course = course;
         this.group = group;
         this.subgroup = subgroup;
         this.registerDate = registerDate;
@@ -35,6 +39,22 @@ public class User extends Entity {
 
     public void setFaculty(String faculty) {
         this.faculty = faculty;
+    }
+
+    public String getProgram() {
+        return program;
+    }
+
+    public void setProgram(String program) {
+        this.program = program;
+    }
+
+    public int getCourse() {
+        return course;
+    }
+
+    public void setCourse(int course) {
+        this.course = course;
     }
 
     public String getGroup() {

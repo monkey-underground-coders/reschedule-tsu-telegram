@@ -17,6 +17,8 @@ import space.delusive.tversu.dao.impl.RestFacultyDao;
 import space.delusive.tversu.dao.impl.SqlUserDao;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.manager.IKeyboardManager;
+import space.delusive.tversu.manager.impl.KeyboardManager;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -92,15 +94,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private User registerAndGetUser(long userId) {
         Date currDate = Date.valueOf(LocalDate.now());
-        userDao.addUser(new User(userId, START, null, null, 0, currDate, currDate));
+        userDao.addUser(new User(userId, START, null, null, 0, null, 0, currDate, currDate));
         return userDao.getUserById(userId);
     }
-
-    private void updateUserStage(User user, int stage) {
-        user.setState(stage);
-        if (!userDao.updateUser(user)) logger.error("Something went wrong while updating user stage!");
-    }
-
 
     // register messages:
 
@@ -135,7 +131,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .enableMarkdown(true)
                 .setText(messages.getString("start"))
                 .setReplyMarkup(getFacultiesKeyboard());
-        updateUserStage(user, CHOOSING_FACULTY);
+        user.setState(CHOOSING_FACULTY);
+        userDao.updateUser(user);
         return response;
     }
 
@@ -157,66 +154,133 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private SendMessage messageOnChoosingProgram(Message request, User user) {
-        //TODO
-        return null;
+        SendMessage response = new SendMessage();
+        response.setChatId(request.getChatId())
+                .enableMarkdown(true);
+        if (!facultyDao.getPrograms(user.getFaculty()).contains(request.getText())) {
+            response.setText(messages.getString("invalid.program"));
+            response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
+        } else {
+            response.setText(messages.getString("choose.course"));
+            response.setReplyMarkup(getCoursesKeyboard(user));
+            user.setProgram(request.getText());
+            user.setState(CHOOSING_COURSE);
+            userDao.updateUser(user);
+        }
+        return response;
     }
 
     private SendMessage messageOnChoosingCourse(Message request, User user) {
-        //TODO
-        return null;
+        SendMessage response = new SendMessage();
+        response.setChatId(request.getChatId())
+                .enableMarkdown(true);
+        try {
+            int course = Integer.parseInt(request.getText());
+            if (facultyDao.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
+                response.setText(messages.getString("choose.group"));
+                response.setReplyMarkup(getGroupsKeyboard(user));
+                user.setState(CHOOSING_GROUP);
+                user.setCourse(course);
+                userDao.updateUser(user);
+            } else {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException e) {
+            response.setText(messages.getString("invalid.course"));
+            response.setReplyMarkup(getCoursesKeyboard(user));
+        }
+        return response;
     }
 
     private SendMessage messageOnChoosingGroup(Message request, User user) {
-        //TODO
-        return null;
+        SendMessage response = new SendMessage();
+        response.setChatId(request.getChatId())
+                .enableMarkdown(true);
+        var groups = facultyDao.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
+        if (!groups.contains(request.getText())) {
+            response.setText(messages.getString("invalid.group"));
+            response.setReplyMarkup(getGroupsKeyboard(user));
+        } else {
+            user.setGroup(request.getText());
+            int subgroups = facultyDao.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+            if (subgroups == 1) {
+                user.setSubgroup(0);
+                user.setState(MAIN_MENU);
+                response.setText(messages.getString("register.end"));
+                response.setReplyMarkup(getMenuKeyboard());
+            } else {
+                user.setState(CHOOSING_SUBGROUP);
+                response.setText(messages.getString("choose.subgroup"));
+                response.setReplyMarkup(getSubgroupsKeyboard(user));
+            }
+        }
+        return response;
     }
 
     private SendMessage messageOnChoosingSubgroup(Message request, User user) {
-        //TODO
+
         return null;
     }
 
+    // :register messages
 
-    // :register messages end
 
     // register keyboards:
 
     private ReplyKeyboardMarkup getFacultiesKeyboard() {
         var faculties = facultyDao.getFaculties();
-        var replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        var keyboard = new ArrayList<KeyboardRow>();
-        var row = new KeyboardRow();
-        for (int i = 0; i < faculties.size(); i++) {
-            if (i != 0 && i % 2 == 0) {
-                keyboard.add(row);
-                row = new KeyboardRow();
-            }
-            row.add(faculties.get(i));
-        }
-        replyKeyboardMarkup.setKeyboard(keyboard);
-        return replyKeyboardMarkup;
+        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        faculties.forEach(keyboardManager::addItem);
+        return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getProgramKeyboard(String faculty) {
         var programs = facultyDao.getPrograms(faculty);
-        var replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        var keyboard = new ArrayList<KeyboardRow>();
-        var row = new KeyboardRow();
-        programs.forEach(row::add);
-        keyboard.add(row);
-        replyKeyboardMarkup.setKeyboard(keyboard);
-        return replyKeyboardMarkup;
+        IKeyboardManager keyboardManager = new KeyboardManager(1);
+        programs.forEach(keyboardManager::addItem);
+        return keyboardManager.getKeyboard();
     }
 
-    private ReplyKeyboardMarkup getGroupsKeyboard() {
-        //TODO
-        return null;
+    private ReplyKeyboardMarkup getCoursesKeyboard(User user) {
+        var courses = facultyDao.getCourses(user.getFaculty(), user.getProgram());
+        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        courses.forEach(course -> keyboardManager.addItem(course.toString()));
+        return keyboardManager.getKeyboard();
     }
 
-    // :register keyboards end
+    private ReplyKeyboardMarkup getGroupsKeyboard(User user) {
+        var groups = facultyDao.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
+        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        groups.forEach(keyboardManager::addItem);
+        return keyboardManager.getKeyboard();
+    }
+
+    private ReplyKeyboardMarkup getSubgroupsKeyboard(User user) {
+        int subgroups = facultyDao.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        for (int i = 1; i <= subgroups; i++) keyboardManager.addItem(String.valueOf(i));
+        return keyboardManager.getKeyboard();
+    }
+
+    // :register keyboards
+
+
+    // main menu messages:
 
     private SendMessage sendMenuMessage() {
         //TODO
         return null;
     }
+
+    // :main menu messages
+
+
+    // main menu keyboards:
+
+    private ReplyKeyboardMarkup getMenuKeyboard() {
+        //TODO
+        return null;
+    }
+
+    // :main menu keyboards
 }
