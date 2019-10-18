@@ -1,0 +1,4 @@
+/src/main/resources/timingbot.properties
+/.idea/
+/target/
+/telegram-timing-bot.iml

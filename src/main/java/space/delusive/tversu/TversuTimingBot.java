@@ -7,14 +7,13 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import space.delusive.tversu.connection.IDatabaseManager;
 import space.delusive.tversu.connection.impl.MysqlDatabaseManager;
-import space.delusive.tversu.dao.IFacultyDao;
 import space.delusive.tversu.dao.IUserDao;
-import space.delusive.tversu.dao.impl.RestFacultyDao;
-import space.delusive.tversu.dao.impl.SqlUserDao;
+import space.delusive.tversu.dao.impl.UserDao;
+import space.delusive.tversu.dto.IFacultyDto;
+import space.delusive.tversu.dto.impl.FacultyDto;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.IKeyboardManager;
@@ -22,7 +21,6 @@ import space.delusive.tversu.manager.impl.KeyboardManager;
 
 import java.sql.Date;
 import java.time.LocalDate;
-import java.util.ArrayList;
 
 public class TversuTimingBot extends TelegramLongPollingBot {
     private final Logger logger = LogManager.getLogger(TversuTimingBot.class);
@@ -30,7 +28,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private final IDataManager config;
     private final IDataManager messages;
     private final IUserDao userDao;
-    private final IFacultyDao facultyDao;
+    private final IFacultyDto facultyDao;
 
     private static final int START = 0;
     private static final int CHOOSING_FACULTY = 1;
@@ -43,12 +41,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     TversuTimingBot(IDataManager config, IDataManager messages) {
         this.config = config;
         this.messages = messages;
-        this.facultyDao = new RestFacultyDao(config);
+        this.facultyDao = new FacultyDto(config);
         String dbUrl = config.getString("db.url");
         String dbUsername = config.getString("db.username");
         String dbPassword = config.getString("db.password");
         IDatabaseManager databaseManager = new MysqlDatabaseManager(dbUrl, dbUsername, dbPassword);
-        userDao = new SqlUserDao(databaseManager);
+        userDao = new UserDao(databaseManager);
     }
 
     @Override

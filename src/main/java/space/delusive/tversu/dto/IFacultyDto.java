@@ -1,9 +1,9 @@
-package space.delusive.tversu.dao;
+package space.delusive.tversu.dto;
 
 import java.util.List;
 import java.util.Set;
 
-public interface IFacultyDao {
+public interface IFacultyDto {
     List<String> getFaculties();
 
     Set<String> getPrograms(String faculty);

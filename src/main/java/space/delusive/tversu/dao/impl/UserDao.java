@@ -8,11 +8,11 @@ import space.delusive.tversu.entity.User;
 
 import java.sql.*;
 
-public class SqlUserDao implements IUserDao {
-    private final Logger logger = LogManager.getLogger(SqlUserDao.class);
+public class UserDao implements IUserDao {
+    private final Logger logger = LogManager.getLogger(UserDao.class);
     private final IDatabaseManager databaseManager;
 
-    public SqlUserDao(IDatabaseManager databaseManager) {
+    public UserDao(IDatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 
