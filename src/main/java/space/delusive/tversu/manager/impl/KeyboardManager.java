@@ -9,6 +9,7 @@ import java.util.List;
 
 /**
  * Для удобной работы с клавиатурками, шоб по 1к раз не писать одно и то же =="
+ *
  * @author Delusive-
  * @version 1.1
  */
@@ -24,6 +25,7 @@ public class KeyboardManager implements IKeyboardManager {
 
     /**
      * Добавить итем в клавиатуру
+     *
      * @param item итем, который надо добавить
      */
     @Override
@@ -37,6 +39,7 @@ public class KeyboardManager implements IKeyboardManager {
 
     /**
      * Сформировать клавиатуру из полученных ранее данных
+     *
      * @return Готовая клавиатур_очка
      */
     @Override

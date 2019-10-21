@@ -2,19 +2,20 @@ package space.delusive.tversu.dao.impl;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import space.delusive.tversu.connection.IDatabaseManager;
 import space.delusive.tversu.dao.IUserDao;
 import space.delusive.tversu.entity.User;
 
 import java.sql.*;
 
+@Component
 public class UserDao implements IUserDao {
     private final Logger logger = LogManager.getLogger(UserDao.class);
-    private final IDatabaseManager databaseManager;
 
-    public UserDao(IDatabaseManager databaseManager) {
-        this.databaseManager = databaseManager;
-    }
+    @Autowired
+    private IDatabaseManager databaseManager;
 
     @Override
     public User getUserById(long id) {

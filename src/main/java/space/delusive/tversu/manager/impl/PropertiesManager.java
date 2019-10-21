@@ -16,6 +16,7 @@ import java.util.Properties;
  * @author Delusive-
  * @version 1.1
  */
+
 public class PropertiesManager implements IDataManager {
     private final Properties properties = new Properties();
     private final Logger logger = LogManager.getLogger(PropertiesManager.class);

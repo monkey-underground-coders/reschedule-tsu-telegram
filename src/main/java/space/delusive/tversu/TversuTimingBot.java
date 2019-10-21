@@ -2,18 +2,17 @@ package space.delusive.tversu;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import space.delusive.tversu.connection.IDatabaseManager;
-import space.delusive.tversu.connection.impl.MysqlDatabaseManager;
 import space.delusive.tversu.dao.IUserDao;
-import space.delusive.tversu.dao.impl.UserDao;
 import space.delusive.tversu.dto.IFacultyDto;
-import space.delusive.tversu.dto.impl.FacultyDto;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.IKeyboardManager;
@@ -22,13 +21,23 @@ import space.delusive.tversu.manager.impl.KeyboardManager;
 import java.sql.Date;
 import java.time.LocalDate;
 
+@Component
 public class TversuTimingBot extends TelegramLongPollingBot {
     private final Logger logger = LogManager.getLogger(TversuTimingBot.class);
 
-    private final IDataManager config;
-    private final IDataManager messages;
-    private final IUserDao userDao;
-    private final IFacultyDto facultyDao;
+    @Autowired
+    @Qualifier("config")
+    private IDataManager config;
+
+    @Autowired
+    @Qualifier("messages")
+    private IDataManager messages;
+
+    @Autowired
+    private IUserDao userDao;
+
+    @Autowired
+    private IFacultyDto facultyDao;
 
     private static final int START = 0;
     private static final int CHOOSING_FACULTY = 1;
@@ -38,15 +47,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int CHOOSING_SUBGROUP = 5;
     private static final int MAIN_MENU = 6;
 
-    TversuTimingBot(IDataManager config, IDataManager messages) {
-        this.config = config;
-        this.messages = messages;
-        this.facultyDao = new FacultyDto(config);
-        String dbUrl = config.getString("db.url");
-        String dbUsername = config.getString("db.username");
-        String dbPassword = config.getString("db.password");
-        IDatabaseManager databaseManager = new MysqlDatabaseManager(dbUrl, dbUsername, dbPassword);
-        userDao = new UserDao(databaseManager);
+    public TversuTimingBot() {
+        super();
     }
 
     @Override

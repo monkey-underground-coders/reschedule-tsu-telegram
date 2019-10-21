@@ -4,6 +4,9 @@ import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 import space.delusive.tversu.dto.IFacultyDto;
 import space.delusive.tversu.exception.FailureRequestException;
 import space.delusive.tversu.manager.IDataManager;
@@ -17,14 +20,13 @@ import java.util.Set;
  * Получение инфы о факультетах с rest-сервера
  *
  * @author Delusive-
- * @version 1.2
  */
+@Component
 public class FacultyDto implements IFacultyDto {
-    private final IDataManager config;
+    @Autowired
+    @Qualifier("config")
+    private IDataManager config;
 
-    public FacultyDto(IDataManager config) {
-        this.config = config;
-    }
 
     /**
      * Получение списка доступных факультетов
