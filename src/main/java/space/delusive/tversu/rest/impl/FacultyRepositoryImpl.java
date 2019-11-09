@@ -1,16 +1,20 @@
-package space.delusive.tversu.dto.impl;
+package space.delusive.tversu.rest.impl;
 
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
-import org.json.JSONObject;
+import kong.unirest.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.dto.IFacultyDto;
+import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.FailureRequestException;
 import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.rest.FacultyRepository;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,10 +26,13 @@ import java.util.Set;
  * @author Delusive-
  */
 @Component
-public class FacultyDto implements IFacultyDto {
+public class FacultyRepositoryImpl implements FacultyRepository {
+    private final IDataManager config;
+
     @Autowired
-    @Qualifier("config")
-    private IDataManager config;
+    public FacultyRepositoryImpl(@Qualifier("config") IDataManager config) {
+        this.config = config;
+    }
 
 
     /**
@@ -107,5 +114,19 @@ public class FacultyDto implements IFacultyDto {
             }
         }
         return subgroups;
+    }
+
+    @Override
+    public WeekSign getCurrentWeekSign(String faculty) {
+        LocalDate localDate = LocalDate.now(ZoneId.of("Europe/Moscow"));
+        String weekSign = Unirest.get(config.getString("rest.get.week.sign.url"))
+                .routeParam("faculty", faculty)
+                .queryString("date", localDate.format(DateTimeFormatter.BASIC_ISO_DATE))
+                .asJson()
+                .getBody()
+                .getObject()
+                .get("weekSign")
+                .toString();
+        return WeekSign.valueOf(weekSign);
     }
 }
