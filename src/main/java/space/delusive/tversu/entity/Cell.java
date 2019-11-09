@@ -1,5 +1,7 @@
 package space.delusive.tversu.entity;
 
+import space.delusive.tversu.util.EmojiUtils;
+
 public class Cell extends Entity {
     private WeekSign weekSign;
     private String fullSubjectName;
@@ -7,12 +9,13 @@ public class Cell extends Entity {
     private String teacherName;
     private String teacherTitle;
     private DayOfWeek dayOfWeek;
+    private byte columnPosition;
     private String start;
     private String end;
     private String auditoryAddress;
-    private int course;
+    private byte course;
     private String group;
-    private int subgroup;
+    private byte subgroup;
     private boolean crossPair;
     private String faculty;
 
@@ -92,7 +95,7 @@ public class Cell extends Entity {
         return course;
     }
 
-    public void setCourse(int course) {
+    public void setCourse(byte course) {
         this.course = course;
     }
 
@@ -108,7 +111,7 @@ public class Cell extends Entity {
         return subgroup;
     }
 
-    public void setSubgroup(int subgroup) {
+    public void setSubgroup(byte subgroup) {
         this.subgroup = subgroup;
     }
 
@@ -136,6 +139,17 @@ public class Cell extends Entity {
                 .append("\uD83D\uDC68\u200D\uD83C\uDFEB Преподаватель: ").append(teacherName).append(" (").append(teacherTitle).append(")\n")
                 .append("\uD83C\uDFEB Локация: ").append(auditoryData[0]).append(" корпус, ").append(auditoryData[1]).append(" аудитория").append("\n\n")
                 .append("\uD83D\uDCA0 Занятие проходит ").append(crossPair ? "*совместно с другой группой*" : "*только у вашей группы*");
+        return response.toString();
+    }
+
+    public String toString() {
+        String[] auditoryData = auditoryAddress.split("\\|");
+        StringBuilder response = new StringBuilder();
+        response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(fullSubjectName).append("*\n")
+                .append("⏳ С ").append(start).append(" до ").append(end).append('\n')
+                .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(teacherName).append('\n')
+                .append("\uD83D\uDCCD Аудитория ").append(auditoryData[1]).append(", корпус ").append(auditoryData[0]).append('\n')
+                .append("\uD83E\uDD32 ").append(crossPair ? "С другой группой" : "Только у вашей группы");
         return response.toString();
     }
 }

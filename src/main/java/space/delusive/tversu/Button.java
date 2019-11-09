@@ -6,7 +6,8 @@ import space.delusive.tversu.manager.impl.PropertiesManager;
 
 enum Button {
     CURRENT_LESSON("menu.main.button.current.lesson"),
-    NEXT_LESSON("menu.main.button.next.lesson");
+    NEXT_LESSON("menu.main.button.next.lesson"),
+    TODAY_LESSONS("menu.main.button.today.lessons");
 
     private static final IDataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");
 

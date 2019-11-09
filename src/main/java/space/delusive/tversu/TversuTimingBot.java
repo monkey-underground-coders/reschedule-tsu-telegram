@@ -22,6 +22,7 @@ import space.delusive.tversu.service.UserService;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -290,9 +291,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             case NEXT_LESSON:
                 response = messageOnChoseNextLesson(request, user);
                 break;
+            case TODAY_LESSONS:
+                response = messageOnChoseTodayLessons(request, user);
         }
         return response;
     }
+
 
     private SendMessage messageOnChoseCurrentLesson(Message request, User user) {
         StringBuilder responseStringBuilder = new StringBuilder();
@@ -322,6 +326,20 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
+    private SendMessage messageOnChoseTodayLessons(Message request, User user) {
+        StringBuilder responseStringBuilder = new StringBuilder();
+        List<Cell> todayLessons = timingService.getTodayLessons(user);
+        if (todayLessons.isEmpty()) {
+            responseStringBuilder.append(messages.getString("today.lessons.not.found"));
+        } else {
+            responseStringBuilder.append(messages.getString("today.lessons")).append("\n\n");
+            todayLessons.forEach(cell -> responseStringBuilder.append(cell).append("\n\n"));
+        }
+        return new SendMessage()
+                .setText(responseStringBuilder.toString())
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
     // :main menu messages
 
 
@@ -331,6 +349,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         IKeyboardManager keyboardManager = new KeyboardManager(1);
         keyboardManager.addItem(Button.CURRENT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
+        keyboardManager.addItem(Button.TODAY_LESSONS.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 
