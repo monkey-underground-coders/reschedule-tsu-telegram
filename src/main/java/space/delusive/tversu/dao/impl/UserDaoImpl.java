@@ -5,17 +5,21 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.connection.IDatabaseManager;
-import space.delusive.tversu.dao.IUserDao;
+import space.delusive.tversu.dao.UserDao;
 import space.delusive.tversu.entity.User;
 
 import java.sql.*;
 
 @Component
-public class UserDao implements IUserDao {
-    private final Logger logger = LogManager.getLogger(UserDao.class);
+public class UserDaoImpl implements UserDao {
+    private static final Logger logger = LogManager.getLogger(UserDaoImpl.class);
+
+    private final IDatabaseManager databaseManager;
 
     @Autowired
-    private IDatabaseManager databaseManager;
+    public UserDaoImpl(IDatabaseManager databaseManager) {
+        this.databaseManager = databaseManager;
+    }
 
     @Override
     public User getUserById(long id) {

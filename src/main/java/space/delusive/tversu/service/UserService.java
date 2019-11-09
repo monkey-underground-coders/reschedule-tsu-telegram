@@ -1,8 +1,8 @@
-package space.delusive.tversu.dao;
+package space.delusive.tversu.service;
 
 import space.delusive.tversu.entity.User;
 
-public interface IUserDao {
+public interface UserService {
     User getUserById(long id);
 
     boolean addUser(User user);

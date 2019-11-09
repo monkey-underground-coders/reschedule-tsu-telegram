@@ -11,14 +11,14 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import space.delusive.tversu.dao.IUserDao;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.IKeyboardManager;
 import space.delusive.tversu.manager.impl.KeyboardManager;
-import space.delusive.tversu.rest.FacultyRepository;
+import space.delusive.tversu.service.FacultyService;
 import space.delusive.tversu.service.TimingService;
+import space.delusive.tversu.service.UserService;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -30,9 +30,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private final IDataManager config;
     private final IDataManager messages;
-    private final IUserDao userDao;
-    private final FacultyRepository facultyRepository;
+    private final UserService userService;
     private final TimingService timingService;
+    private final FacultyService facultyService;
 
     //stages
     private static final int START = 0;
@@ -44,11 +44,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int MAIN_MENU = 6;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("config") IDataManager config, @Qualifier("messages") IDataManager messages, IUserDao userDao, FacultyRepository facultyRepository, TimingService timingService) {
+    public TversuTimingBot(@Qualifier("config") IDataManager config, @Qualifier("messages") IDataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
         this.config = config;
         this.messages = messages;
-        this.userDao = userDao;
-        this.facultyRepository = facultyRepository;
+        this.userService = userService;
+        this.facultyService = facultyService;
         this.timingService = timingService;
     }
 
@@ -74,7 +74,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private void handleIncomingMessage(Message msg) throws TelegramApiException {
-        User user = userDao.getUserById(msg.getFrom().getId());
+        User user = userService.getUserById(msg.getFrom().getId());
         if (user == null) { //user doesn't exist
             user = registerAndGetUser(msg.getFrom().getId());
         }
@@ -98,8 +98,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private User registerAndGetUser(long userId) {
         Date currDate = Date.valueOf(LocalDate.now());
-        userDao.addUser(new User(userId, START, null, null, 0, null, 0, currDate, currDate));
-        return userDao.getUserById(userId);
+        userService.addUser(new User(userId, START, null, null, 0, null, 0, currDate, currDate));
+        return userService.getUserById(userId);
     }
 
 
@@ -135,19 +135,19 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         response.setText(messages.getString("start"))
                 .setReplyMarkup(getFacultiesKeyboard());
         user.setState(CHOOSING_FACULTY);
-        userDao.updateUser(user);
+        userService.updateUser(user);
         return response;
     }
 
     private SendMessage messageOnChoosingFaculty(Message request, User user) {
         SendMessage response = new SendMessage();
-        if (!facultyRepository.getFaculties().contains(request.getText())) {
+        if (!facultyService.getFaculties().contains(request.getText())) {
             response.setText(messages.getString("invalid.faculty"));
             response.setReplyMarkup(getFacultiesKeyboard());
         } else {
             user.setFaculty(request.getText());
             user.setState(CHOOSING_PROGRAM);
-            userDao.updateUser(user);
+            userService.updateUser(user);
             response.setText(messages.getString("choose.program"));
             response.setReplyMarkup(getProgramKeyboard(request.getText()));
         }
@@ -156,13 +156,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private SendMessage messageOnChoosingProgram(Message request, User user) {
         SendMessage response = new SendMessage();
-        if (!facultyRepository.getPrograms(user.getFaculty()).contains(request.getText())) {
+        if (!facultyService.getPrograms(user.getFaculty()).contains(request.getText())) {
             response.setText(messages.getString("invalid.program"));
             response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
         } else {
             user.setProgram(request.getText());
             user.setState(CHOOSING_COURSE);
-            userDao.updateUser(user);
+            userService.updateUser(user);
             response.setText(messages.getString("choose.course"));
             response.setReplyMarkup(getCoursesKeyboard(user));
         }
@@ -173,10 +173,10 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         SendMessage response = new SendMessage();
         try {
             int course = Integer.parseInt(request.getText());
-            if (facultyRepository.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
+            if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
                 user.setState(CHOOSING_GROUP);
                 user.setCourse(course);
-                userDao.updateUser(user);
+                userService.updateUser(user);
                 response.setText(messages.getString("choose.group"));
                 response.setReplyMarkup(getGroupsKeyboard(user));
             } else {
@@ -191,13 +191,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private SendMessage messageOnChoosingGroup(Message request, User user) {
         SendMessage response = new SendMessage();
-        var groups = facultyRepository.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
+        var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
         if (!groups.contains(request.getText())) {
             response.setText(messages.getString("invalid.group"));
             response.setReplyMarkup(getGroupsKeyboard(user));
         } else {
             user.setGroup(request.getText());
-            int subgroups = facultyRepository.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+            int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
             if (subgroups == 1) {
                 user.setSubgroup(0);
                 user.setState(MAIN_MENU);
@@ -208,14 +208,14 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 response.setText(messages.getString("choose.subgroup"));
                 response.setReplyMarkup(getSubgroupsKeyboard(user));
             }
-            userDao.updateUser(user);
+            userService.updateUser(user);
         }
         return response;
     }
 
     private SendMessage messageOnChoosingSubgroup(Message request, User user) {
         SendMessage response = new SendMessage();
-        int subgroups = facultyRepository.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+        int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
         int subgroup;
         try {
             subgroup = Integer.parseInt(request.getText());
@@ -224,7 +224,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             } else {
                 user.setState(MAIN_MENU);
                 user.setSubgroup(subgroup);
-                userDao.updateUser(user);
+                userService.updateUser(user);
                 response.setText(messages.getString("register.end"));
                 response.setReplyMarkup(getMenuKeyboard());
             }
@@ -241,35 +241,35 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // register keyboards:
 
     private ReplyKeyboardMarkup getFacultiesKeyboard() {
-        var faculties = facultyRepository.getFaculties();
+        var faculties = facultyService.getFaculties();
         IKeyboardManager keyboardManager = new KeyboardManager(2);
         faculties.forEach(keyboardManager::addItem);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getProgramKeyboard(String faculty) {
-        var programs = facultyRepository.getPrograms(faculty);
+        var programs = facultyService.getPrograms(faculty);
         IKeyboardManager keyboardManager = new KeyboardManager(1);
         programs.forEach(keyboardManager::addItem);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getCoursesKeyboard(User user) {
-        var courses = facultyRepository.getCourses(user.getFaculty(), user.getProgram());
+        var courses = facultyService.getCourses(user.getFaculty(), user.getProgram());
         IKeyboardManager keyboardManager = new KeyboardManager(2);
         courses.forEach(course -> keyboardManager.addItem(course.toString()));
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getGroupsKeyboard(User user) {
-        var groups = facultyRepository.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
+        var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
         IKeyboardManager keyboardManager = new KeyboardManager(2);
         groups.forEach(keyboardManager::addItem);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getSubgroupsKeyboard(User user) {
-        int subgroups = facultyRepository.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+        int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
         IKeyboardManager keyboardManager = new KeyboardManager(2);
         for (int i = 1; i <= subgroups; i++) keyboardManager.addItem(String.valueOf(i));
         return keyboardManager.getKeyboard();
@@ -285,12 +285,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         SendMessage response = null;
         switch (userChoice) {
             case CURRENT_LESSON:
-                response = messageOnChooseCurrentLesson(request, user);
+                response = messageOnChoseCurrentLesson(request, user);
         }
         return response;
     }
 
-    private SendMessage messageOnChooseCurrentLesson(Message request, User user) {
+    private SendMessage messageOnChoseCurrentLesson(Message request, User user) {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> currentLesson = timingService.getCurrentLesson(user);
         if (currentLesson.isPresent()) {
