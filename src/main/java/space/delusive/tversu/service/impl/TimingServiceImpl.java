@@ -38,7 +38,7 @@ public class TimingServiceImpl implements TimingService {
     public Optional<Cell> getNextLesson(User user) {
         return getTodayLessonsAsStream(user)
                 .filter(cell -> DateUtils.compareTime(cell.getStart(), DateUtils.getCurrentTime()) == -1)
-                .min((o1, o2) -> DateUtils.compareTime(o1.getStart(), o2.getStart()));
+                .min((o1, o2) -> DateUtils.compareTime(o2.getStart(), o1.getStart()));
     }
 
     @Override

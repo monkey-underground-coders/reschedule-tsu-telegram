@@ -286,6 +286,10 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         switch (userChoice) {
             case CURRENT_LESSON:
                 response = messageOnChoseCurrentLesson(request, user);
+                break;
+            case NEXT_LESSON:
+                response = messageOnChoseNextLesson(request, user);
+                break;
         }
         return response;
     }
@@ -304,6 +308,20 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
+    private SendMessage messageOnChoseNextLesson(Message request, User user) {
+        StringBuilder responseStringBuilder = new StringBuilder();
+        Optional<Cell> nextLesson = timingService.getNextLesson(user);
+        if (nextLesson.isPresent()) {
+            responseStringBuilder.append(messages.getString("next.lesson")).append("\n\n")
+                    .append(nextLesson.get().toLongString());
+        } else {
+            responseStringBuilder.append(messages.getString("next.lesson.not.found"));
+        }
+        return new SendMessage()
+                .setText(responseStringBuilder.toString())
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
     // :main menu messages
 
 
@@ -312,6 +330,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private ReplyKeyboardMarkup getMenuKeyboard() {
         IKeyboardManager keyboardManager = new KeyboardManager(1);
         keyboardManager.addItem(Button.CURRENT_LESSON.getLocalizedName());
+        keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 
