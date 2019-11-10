@@ -302,10 +302,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             case TOMORROW_LESSONS:
                 response = messageOnChoseTomorrowLessons(request, user);
                 break;
+            case UNREGISTER:
+                response = messageOnUnregister(request, user);
+                break;
         }
         return response;
     }
-
 
     private SendMessage messageOnChoseCurrentLesson(Message request, User user) {
         StringBuilder responseStringBuilder = new StringBuilder();
@@ -361,6 +363,14 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
+    private SendMessage messageOnUnregister(Message request, User user) {
+        user.setState(CHOOSING_FACULTY);
+        userService.updateUser(user);
+        return new SendMessage()
+                .setText(messages.getString("unregister"))
+                .setReplyMarkup(getFacultiesKeyboard());
+    }
+
     // :main menu messages
 
 
@@ -372,6 +382,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.TODAY_LESSONS.getLocalizedName());
         keyboardManager.addItem(Button.TOMORROW_LESSONS.getLocalizedName());
+        keyboardManager.addItem(Button.UNREGISTER.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 
