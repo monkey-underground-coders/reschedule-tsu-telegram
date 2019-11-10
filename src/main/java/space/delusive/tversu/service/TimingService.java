@@ -12,4 +12,6 @@ public interface TimingService {
     Optional<Cell> getNextLesson(User user);
 
     List<Cell> getTodayLessons(User user);
+
+    List<Cell> getTomorrowOrMondayLessons(User user);
 }

@@ -3,6 +3,7 @@ package space.delusive.tversu.service.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.Cell;
+import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.rest.CellRepository;
@@ -46,12 +47,23 @@ public class TimingServiceImpl implements TimingService {
         return getTodayLessonsAsStream(user).collect(Collectors.toList());
     }
 
+    @Override
+    public List<Cell> getTomorrowOrMondayLessons(User user) {
+        DayOfWeek targetDay = DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
+                DayOfWeek.MONDAY : DateUtils.getCurrentDayOfWeek().next();
+        return getLessonsOfDayAsStream(user, targetDay).collect(Collectors.toList());
+    }
+
     private Stream<Cell> getTodayLessonsAsStream(User user) {
+        return getLessonsOfDayAsStream(user, DateUtils.getCurrentDayOfWeek());
+    }
+
+    private Stream<Cell> getLessonsOfDayAsStream(User user, DayOfWeek day) {
         List<Cell> cells = cellRepository.getCells(user.getFaculty(), user.getGroup());
         WeekSign currentWeekSign = facultyRepository.getCurrentWeekSign(user.getFaculty());
         return cells.stream()
                 .filter(cell -> cell.getWeekSign() == currentWeekSign || cell.getWeekSign() == WeekSign.ANY)
-                .filter(cell -> cell.getDayOfWeek() == DateUtils.getCurrentDayOfWeek())
+                .filter(cell -> cell.getDayOfWeek() == day)
                 .filter(cell -> cell.getSubgroup() == user.getSubgroup() || cell.getSubgroup() == 0);
     }
 }

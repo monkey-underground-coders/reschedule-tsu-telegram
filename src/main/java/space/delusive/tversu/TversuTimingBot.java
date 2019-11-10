@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import space.delusive.tversu.entity.Cell;
+import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.IKeyboardManager;
@@ -19,6 +20,7 @@ import space.delusive.tversu.manager.impl.KeyboardManager;
 import space.delusive.tversu.service.FacultyService;
 import space.delusive.tversu.service.TimingService;
 import space.delusive.tversu.service.UserService;
+import space.delusive.tversu.util.DateUtils;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -78,6 +80,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         User user = userService.getUserById(msg.getFrom().getId());
         if (user == null) { //user doesn't exist
             user = registerAndGetUser(msg.getFrom().getId());
+        } else {
+            user.setLastMessageDate(Date.valueOf(LocalDate.now()));
+            userService.updateUser(user);
         }
         SendMessage response = null;
         switch (user.getState()) {
@@ -293,6 +298,10 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 break;
             case TODAY_LESSONS:
                 response = messageOnChoseTodayLessons(request, user);
+                break;
+            case TOMORROW_LESSONS:
+                response = messageOnChoseTomorrowLessons(request, user);
+                break;
         }
         return response;
     }
@@ -340,6 +349,18 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
+    private SendMessage messageOnChoseTomorrowLessons(Message request, User user) {
+        StringBuilder responseStringBuilder = new StringBuilder();
+        List<Cell> tomorrowLessons = timingService.getTomorrowOrMondayLessons(user);
+        responseStringBuilder.append(
+                DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
+                messages.getString("tomorrow.lessons.monday") : messages.getString("tomorrow.lessons")).append("\n\n");
+        tomorrowLessons.forEach(cell -> responseStringBuilder.append(cell.toString()).append("\n\n"));
+        return new SendMessage()
+                .setText(responseStringBuilder.toString())
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
     // :main menu messages
 
 
@@ -350,6 +371,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         keyboardManager.addItem(Button.CURRENT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.TODAY_LESSONS.getLocalizedName());
+        keyboardManager.addItem(Button.TOMORROW_LESSONS.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 
