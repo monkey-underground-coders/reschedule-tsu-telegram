@@ -14,6 +14,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
+import space.delusive.tversu.exception.NoSuchButtonException;
 import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.IKeyboardManager;
 import space.delusive.tversu.manager.impl.KeyboardManager;
@@ -204,7 +205,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         } else {
             user.setGroup(request.getText());
             int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
-            if (subgroups == 1) {
+            if (subgroups == 0) {
                 user.setSubgroup(0);
                 user.setState(MAIN_MENU);
                 response.setText(messages.getString("register.end"));
@@ -287,7 +288,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // main menu messages:
 
     private SendMessage sendMenuMessage(Message request, User user) {
-        Button userChoice = Button.of(request.getText());
+        Button userChoice;
+        try {
+            userChoice = Button.of(request.getText());
+        } catch (NoSuchButtonException e) {
+            logger.debug(e);
+            return new SendMessage().setText(messages.getString("main.menu.invalid.choice"));
+        }
         SendMessage response = null;
         switch (userChoice) {
             case CURRENT_LESSON:

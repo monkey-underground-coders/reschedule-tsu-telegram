@@ -17,4 +17,6 @@ public interface FacultyService {
     int getSubgroupsCount(String faculty, String program, int course, String group);
 
     WeekSign getCurrentWeekSign(String faculty);
+
+    WeekSign getNextWeekSign(String faculty);
 }

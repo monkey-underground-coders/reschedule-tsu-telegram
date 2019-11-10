@@ -47,4 +47,9 @@ public class FacultyServiceImpl implements FacultyService {
     public WeekSign getCurrentWeekSign(String faculty) {
         return facultyRepository.getCurrentWeekSign(faculty);
     }
+
+    @Override
+    public WeekSign getNextWeekSign(String faculty) {
+        return getCurrentWeekSign(faculty) == WeekSign.MINUS ? WeekSign.PLUS : WeekSign.MINUS;
+    }
 }

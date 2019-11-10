@@ -1,13 +1,12 @@
 package space.delusive.tversu.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.rest.CellRepository;
-import space.delusive.tversu.rest.FacultyRepository;
+import space.delusive.tversu.service.FacultyService;
 import space.delusive.tversu.service.TimingService;
 import space.delusive.tversu.util.DateUtils;
 
@@ -19,12 +18,11 @@ import java.util.stream.Stream;
 @Component
 public class TimingServiceImpl implements TimingService {
     private final CellRepository cellRepository;
-    private final FacultyRepository facultyRepository;
+    private final FacultyService facultyService;
 
-    @Autowired
-    public TimingServiceImpl(CellRepository cellRepository, FacultyRepository facultyRepository) {
+    public TimingServiceImpl(CellRepository cellRepository, FacultyService facultyService) {
         this.cellRepository = cellRepository;
-        this.facultyRepository = facultyRepository;
+        this.facultyService = facultyService;
     }
 
     @Override
@@ -51,18 +49,18 @@ public class TimingServiceImpl implements TimingService {
     public List<Cell> getTomorrowOrMondayLessons(User user) {
         DayOfWeek targetDay = DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
                 DayOfWeek.MONDAY : DateUtils.getCurrentDayOfWeek().next();
-        return getLessonsOfDayAsStream(user, targetDay).collect(Collectors.toList());
+        return getLessonsOfDayAsStream(user, targetDay, targetDay == DayOfWeek.MONDAY).collect(Collectors.toList());
     }
 
     private Stream<Cell> getTodayLessonsAsStream(User user) {
-        return getLessonsOfDayAsStream(user, DateUtils.getCurrentDayOfWeek());
+        return getLessonsOfDayAsStream(user, DateUtils.getCurrentDayOfWeek(), false);
     }
 
-    private Stream<Cell> getLessonsOfDayAsStream(User user, DayOfWeek day) {
+    private Stream<Cell> getLessonsOfDayAsStream(User user, DayOfWeek day, boolean isNextWeek) {
         List<Cell> cells = cellRepository.getCells(user.getFaculty(), user.getGroup());
-        WeekSign currentWeekSign = facultyRepository.getCurrentWeekSign(user.getFaculty());
+        WeekSign targetWeekSign = isNextWeek ? facultyService.getNextWeekSign(user.getFaculty()) : facultyService.getCurrentWeekSign(user.getFaculty());
         return cells.stream()
-                .filter(cell -> cell.getWeekSign() == currentWeekSign || cell.getWeekSign() == WeekSign.ANY)
+                .filter(cell -> cell.getWeekSign() == targetWeekSign || cell.getWeekSign() == WeekSign.ANY)
                 .filter(cell -> cell.getDayOfWeek() == day)
                 .filter(cell -> cell.getSubgroup() == user.getSubgroup() || cell.getSubgroup() == 0);
     }

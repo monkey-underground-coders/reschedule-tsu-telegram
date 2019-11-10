@@ -121,7 +121,7 @@ public class FacultyRepositoryImpl implements FacultyRepository {
         LocalDate localDate = LocalDate.now(ZoneId.of("Europe/Moscow"));
         String weekSign = Unirest.get(config.getString("rest.get.week.sign.url"))
                 .routeParam("faculty", faculty)
-                .queryString("date", localDate.format(DateTimeFormatter.BASIC_ISO_DATE))
+                .queryString("day", localDate.format(DateTimeFormatter.ISO_DATE))
                 .asJson()
                 .getBody()
                 .getObject()
