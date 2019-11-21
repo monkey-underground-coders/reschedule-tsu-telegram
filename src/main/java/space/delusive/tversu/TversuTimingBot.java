@@ -361,10 +361,14 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private SendMessage messageOnChoseTomorrowLessons(Message request, User user) {
         StringBuilder responseStringBuilder = new StringBuilder();
         List<Cell> tomorrowLessons = timingService.getTomorrowOrMondayLessons(user);
-        responseStringBuilder.append(
-                DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
-                messages.getString("tomorrow.lessons.monday") : messages.getString("tomorrow.lessons")).append("\n\n");
-        tomorrowLessons.forEach(cell -> responseStringBuilder.append(cell.toString()).append("\n\n"));
+        if (tomorrowLessons.isEmpty()) {
+            responseStringBuilder.append(messages.getString("tomorrow.lessons.not.found"));
+        } else {
+            responseStringBuilder.append(DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
+                    messages.getString("tomorrow.lessons.monday") :
+                    messages.getString("tomorrow.lessons")).append("\n\n");
+            tomorrowLessons.forEach(cell -> responseStringBuilder.append(cell.toString()).append("\n\n"));
+        }
         return new SendMessage()
                 .setText(responseStringBuilder.toString())
                 .setReplyMarkup(getMenuKeyboard());
