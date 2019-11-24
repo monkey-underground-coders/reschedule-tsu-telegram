@@ -51,6 +51,20 @@ public class TimingServiceImpl implements TimingService {
         return getLessonsOfDayAsStream(user, targetDay, targetDay == DayOfWeek.MONDAY).collect(Collectors.toList());
     }
 
+    @Override
+    public Map<DayOfWeek, List<Cell>> getRemainingLessonsOfWeek(User user) {
+        Map<DayOfWeek, List<Cell>> remainingLessonsOfWeek = new LinkedHashMap<>();
+        getLessonsOfWeekAsStream(user, false)
+                .filter(cell -> !cell.getDayOfWeek().isBeforeOf(DateUtils.getCurrentDayOfWeek()))
+                .forEach(cell -> {
+                    if (!remainingLessonsOfWeek.containsKey(cell.getDayOfWeek())) {
+                        remainingLessonsOfWeek.put(cell.getDayOfWeek(), new ArrayList<>());
+                    }
+                    remainingLessonsOfWeek.get(cell.getDayOfWeek()).add(cell);
+                });
+        return remainingLessonsOfWeek;
+    }
+
     private Stream<Cell> getTodayLessonsAsStream(User user) {
         return getLessonsOfDayAsStream(user, DateUtils.getCurrentDayOfWeek(), false);
     }

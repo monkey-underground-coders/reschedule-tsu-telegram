@@ -9,6 +9,7 @@ enum Button {
     NEXT_LESSON("menu.main.button.next.lesson"),
     TODAY_LESSONS("menu.main.button.today.lessons"),
     TOMORROW_LESSONS("menu.main.button.tomorrow.lessons"),
+    REMAINING_LESSONS_OF_WEEK("menu.main.button.remaining.lessons.of.week"),
     UNREGISTER("menu.main.button.unregister");
 
     private static final IDataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");

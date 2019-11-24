@@ -21,11 +21,13 @@ import space.delusive.tversu.manager.impl.KeyboardManager;
 import space.delusive.tversu.service.FacultyService;
 import space.delusive.tversu.service.TimingService;
 import space.delusive.tversu.service.UserService;
+import space.delusive.tversu.util.BaseUtils;
 import space.delusive.tversu.util.DateUtils;
 
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -309,6 +311,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             case TOMORROW_LESSONS:
                 response = messageOnChoseTomorrowLessons(request, user);
                 break;
+            case REMAINING_LESSONS_OF_WEEK:
+                response = messageOnChoseRemainingLessonsOfWeek(request, user);
+                break;
             case UNREGISTER:
                 response = messageOnUnregister(request, user);
                 break;
@@ -374,6 +379,27 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
+    private SendMessage messageOnChoseRemainingLessonsOfWeek(Message request, User user) {
+        StringBuilder responseStringBuilder = new StringBuilder();
+        Map<DayOfWeek, List<Cell>> remainingLessonsOfWeek = timingService.getRemainingLessonsOfWeek(user);
+        if (remainingLessonsOfWeek.isEmpty()) {
+            responseStringBuilder.append(messages.getString("remaining.lessons.of.week.not.found"));
+        } else {
+            responseStringBuilder.append(messages.getString("remaining.lessons.of.week.header")).append("\n\n");
+            remainingLessonsOfWeek.forEach((day, cells) -> {
+                String dayOfWeek = messages.getString("day.of.week." + day.toString().toLowerCase());
+                responseStringBuilder.append("\uD83D\uDD36 *")
+                        .append(BaseUtils.capitalizeString(dayOfWeek))
+                        .append(":*\n\n");
+                cells.forEach(cell -> responseStringBuilder.append(cell.toShortString()).append('\n'));
+                responseStringBuilder.append("\n");
+            });
+        }
+        return new SendMessage()
+                .setText(responseStringBuilder.toString())
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
     private SendMessage messageOnUnregister(Message request, User user) {
         user.setState(CHOOSING_FACULTY);
         userService.updateUser(user);
@@ -393,6 +419,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.TODAY_LESSONS.getLocalizedName());
         keyboardManager.addItem(Button.TOMORROW_LESSONS.getLocalizedName());
+        keyboardManager.addItem(Button.REMAINING_LESSONS_OF_WEEK.getLocalizedName());
         keyboardManager.addItem(Button.UNREGISTER.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
