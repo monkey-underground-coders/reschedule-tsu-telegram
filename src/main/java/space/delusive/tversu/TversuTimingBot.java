@@ -14,6 +14,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
+import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.NoSuchButtonException;
 import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.IKeyboardManager;
@@ -48,6 +49,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int CHOOSING_GROUP = 4;
     private static final int CHOOSING_SUBGROUP = 5;
     private static final int MAIN_MENU = 6;
+    private static final int CHOOSING_DAY_OF_WEEK = 7;
 
     @Autowired
     public TversuTimingBot(@Qualifier("config") IDataManager config, @Qualifier("messages") IDataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
@@ -99,6 +101,10 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 break;
             case MAIN_MENU:
                 response = sendMenuMessage(msg, user);
+                break;
+            case CHOOSING_DAY_OF_WEEK:
+                response = messageOnChoosingDayOfWeek(msg, user);
+                break;
         }
         response.setChatId(msg.getChatId())
                 .enableMarkdown(true);
@@ -244,8 +250,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return response;
     }
 
-    // :register messages
 
+    // :register messages
 
     // register keyboards:
 
@@ -284,8 +290,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return keyboardManager.getKeyboard();
     }
 
-    // :register keyboards
 
+    // :register keyboards
 
     // main menu messages:
 
@@ -313,6 +319,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 break;
             case REMAINING_LESSONS_OF_WEEK:
                 response = messageOnChoseRemainingLessonsOfWeek(request, user);
+                break;
+            case LESSONS_OF_SPECIFIED_DAY:
+                response = messageOnChoseLessonsOfSpecifiedDay(request, user);
                 break;
             case UNREGISTER:
                 response = messageOnUnregister(request, user);
@@ -387,7 +396,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         } else {
             responseStringBuilder.append(messages.getString("remaining.lessons.of.week.header")).append("\n\n");
             remainingLessonsOfWeek.forEach((day, cells) -> {
-                String dayOfWeek = messages.getString("day.of.week." + day.toString().toLowerCase());
+                String dayOfWeek = BaseUtils.getLocalizedNameOfDay(day, messages);
                 responseStringBuilder.append("\uD83D\uDD36 *")
                         .append(BaseUtils.capitalizeString(dayOfWeek))
                         .append(":*\n\n");
@@ -398,6 +407,24 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return new SendMessage()
                 .setText(responseStringBuilder.toString())
                 .setReplyMarkup(getMenuKeyboard());
+    }
+
+    private SendMessage messageOnChoseLessonsOfSpecifiedDay(Message request, User user) {
+        user.setState(CHOOSING_DAY_OF_WEEK);
+        userService.updateUser(user);
+        String messageText = messages.getString("timing.specified.day.choose.day");
+        if (DateUtils.getCurrentDayOfWeek() == DayOfWeek.SUNDAY) {
+            String nextWeekSign = BaseUtils.getLocalizedNameOfWeekSign(facultyService.getNextWeekSign(user.getFaculty()), messages);
+            messageText += messages.getString("timing.specified.day.choose.day.warning")
+                    .replaceAll("%week%", nextWeekSign);
+        } else {
+            String currentWeekSign = BaseUtils.getLocalizedNameOfWeekSign(facultyService.getCurrentWeekSign(user.getFaculty()), messages);
+            messageText += messages.getString("timing.specified.day.choose.day.current.week.sign")
+                    .replaceAll("%week%", currentWeekSign);
+        }
+        return new SendMessage()
+                .setText(messageText)
+                .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
     }
 
     private SendMessage messageOnUnregister(Message request, User user) {
@@ -420,10 +447,53 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         keyboardManager.addItem(Button.TODAY_LESSONS.getLocalizedName());
         keyboardManager.addItem(Button.TOMORROW_LESSONS.getLocalizedName());
         keyboardManager.addItem(Button.REMAINING_LESSONS_OF_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.LESSONS_OF_SPECIFIED_DAY.getLocalizedName());
         keyboardManager.addItem(Button.UNREGISTER.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 
+    private ReplyKeyboardMarkup getKeyboardOfWorkingDaysForTwoWeeks() { // oh god...
+        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        keyboardManager.addItem(Button.MONDAY_PLUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.MONDAY_MINUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.TUESDAY_PLUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.TUESDAY_MINUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.WEDNESDAY_PLUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.WEDNESDAY_MINUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.THURSDAY_PLUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.THURSDAY_MINUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.FRIDAY_PLUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.FRIDAY_MINUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.SATURDAY_PLUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.SATURDAY_MINUS_WEEK.getLocalizedName());
+        return keyboardManager.getKeyboard();
+    }
+
     // :main menu keyboards
+
+
+    private SendMessage messageOnChoosingDayOfWeek(Message request, User user) {
+        String messageText = request.getText();
+        String[] splittedButtonName;
+        try {
+            splittedButtonName = Button.of(messageText).toString().split("_");
+        } catch (NoSuchButtonException e) {
+            logger.debug(e);
+            return new SendMessage().setText(messages.getString("timing.specified.day.invalid"));
+        }
+        DayOfWeek dayOfWeek = DayOfWeek.valueOf(splittedButtonName[0]);
+        WeekSign weekSign = WeekSign.valueOf(splittedButtonName[1]);
+        List<Cell> lessonsOfSpecifiedDay = timingService.getLessonsOfSpecifiedDay(user, dayOfWeek, weekSign);
+        StringBuilder stringBuilder = new StringBuilder(messages.getString("timing.specified.day")
+                .replaceAll("%day%", BaseUtils.getLocalizedNameOfDayInAccusative(dayOfWeek, messages))
+                .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages)))
+                .append("\n\n");
+        lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
+        user.setState(MAIN_MENU);
+        userService.updateUser(user);
+        return new SendMessage()
+                .setText(stringBuilder.toString())
+                .setReplyMarkup(getMenuKeyboard());
+    }
 }
 

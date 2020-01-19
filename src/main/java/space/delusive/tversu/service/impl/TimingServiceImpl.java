@@ -65,6 +65,12 @@ public class TimingServiceImpl implements TimingService {
         return remainingLessonsOfWeek;
     }
 
+    @Override
+    public List<Cell> getLessonsOfSpecifiedDay(User user, DayOfWeek dayOfWeek, WeekSign weekSign) {
+        boolean isCurrentWeek = weekSign.equals(facultyService.getCurrentWeekSign(user.getFaculty()));
+        return getLessonsOfDayAsStream(user, dayOfWeek, !isCurrentWeek).collect(Collectors.toList());
+    }
+
     private Stream<Cell> getTodayLessonsAsStream(User user) {
         return getLessonsOfDayAsStream(user, DateUtils.getCurrentDayOfWeek(), false);
     }

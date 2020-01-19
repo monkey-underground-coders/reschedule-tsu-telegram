@@ -5,12 +5,28 @@ import space.delusive.tversu.manager.IDataManager;
 import space.delusive.tversu.manager.impl.PropertiesManager;
 
 enum Button {
+    // main menu:
     CURRENT_LESSON("menu.main.button.current.lesson"),
     NEXT_LESSON("menu.main.button.next.lesson"),
     TODAY_LESSONS("menu.main.button.today.lessons"),
     TOMORROW_LESSONS("menu.main.button.tomorrow.lessons"),
     REMAINING_LESSONS_OF_WEEK("menu.main.button.remaining.lessons.of.week"),
-    UNREGISTER("menu.main.button.unregister");
+    LESSONS_OF_SPECIFIED_DAY("menu.main.button.lessons.of.specified.day"),
+    UNREGISTER("menu.main.button.unregister"),
+
+    // days of weeks:
+    MONDAY_PLUS_WEEK("menu.choose.working.day.button.monday.plus"),
+    TUESDAY_PLUS_WEEK("menu.choose.working.day.button.tuesday.plus"),
+    WEDNESDAY_PLUS_WEEK("menu.choose.working.day.button.wednesday.plus"),
+    THURSDAY_PLUS_WEEK("menu.choose.working.day.button.thursday.plus"),
+    FRIDAY_PLUS_WEEK("menu.choose.working.day.button.friday.plus"),
+    SATURDAY_PLUS_WEEK("menu.choose.working.day.button.saturday.plus"),
+    MONDAY_MINUS_WEEK("menu.choose.working.day.button.monday.minus"),
+    TUESDAY_MINUS_WEEK("menu.choose.working.day.button.tuesday.minus"),
+    WEDNESDAY_MINUS_WEEK("menu.choose.working.day.button.wednesday.minus"),
+    THURSDAY_MINUS_WEEK("menu.choose.working.day.button.thursday.minus"),
+    FRIDAY_MINUS_WEEK("menu.choose.working.day.button.friday.minus"),
+    SATURDAY_MINUS_WEEK("menu.choose.working.day.button.saturday.minus");
 
     private static final IDataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");
 
