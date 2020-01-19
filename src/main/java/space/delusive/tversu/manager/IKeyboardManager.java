@@ -6,4 +6,6 @@ public interface IKeyboardManager {
     ReplyKeyboardMarkup getKeyboard();
 
     void addItem(String item);
+
+    void addItemOnNewLine(String item);
 }

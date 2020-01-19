@@ -38,6 +38,19 @@ public class KeyboardManager implements IKeyboardManager {
     }
 
     /**
+     * Добавить итем на новую строку в клавиатуру!
+     *
+     * @param item то, что надо добавить
+     */
+    public void addItemOnNewLine(String item) {
+        if (isNotEmpty(keyboardRow)) {
+            keyboard.add(keyboardRow);
+            keyboardRow = new KeyboardRow();
+        }
+        addItem(item);
+    }
+
+    /**
      * Сформировать клавиатуру из полученных ранее данных
      *
      * @return Готовая клавиатур_очка
@@ -47,5 +60,9 @@ public class KeyboardManager implements IKeyboardManager {
         if (!keyboard.contains(keyboardRow)) keyboard.add(keyboardRow);
         keyboardMarkup.setKeyboard(keyboard);
         return keyboardMarkup;
+    }
+
+    public boolean isNotEmpty(List list) {
+        return !list.isEmpty();
     }
 }

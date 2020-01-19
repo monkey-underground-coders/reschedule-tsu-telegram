@@ -441,14 +441,14 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // main menu keyboards:
 
     private ReplyKeyboardMarkup getMenuKeyboard() {
-        IKeyboardManager keyboardManager = new KeyboardManager(1);
+        IKeyboardManager keyboardManager = new KeyboardManager(2);
         keyboardManager.addItem(Button.CURRENT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
-        keyboardManager.addItem(Button.TODAY_LESSONS.getLocalizedName());
-        keyboardManager.addItem(Button.TOMORROW_LESSONS.getLocalizedName());
-        keyboardManager.addItem(Button.REMAINING_LESSONS_OF_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.LESSONS_OF_SPECIFIED_DAY.getLocalizedName());
-        keyboardManager.addItem(Button.UNREGISTER.getLocalizedName());
+        keyboardManager.addItemOnNewLine(Button.TODAY_LESSONS.getLocalizedName());
+        keyboardManager.addItemOnNewLine(Button.TOMORROW_LESSONS.getLocalizedName());
+        keyboardManager.addItemOnNewLine(Button.REMAINING_LESSONS_OF_WEEK.getLocalizedName());
+        keyboardManager.addItemOnNewLine(Button.LESSONS_OF_SPECIFIED_DAY.getLocalizedName());
+        keyboardManager.addItemOnNewLine(Button.UNREGISTER.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 
