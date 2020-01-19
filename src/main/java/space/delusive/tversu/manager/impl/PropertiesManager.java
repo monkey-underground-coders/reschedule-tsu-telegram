@@ -3,7 +3,7 @@ package space.delusive.tversu.manager.impl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import space.delusive.tversu.exception.PropertiesException;
-import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.manager.DataManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +17,7 @@ import java.util.Properties;
  * @version 1.1
  */
 
-public class PropertiesManager implements IDataManager {
+public class PropertiesManager implements DataManager {
     private final Properties properties = new Properties();
     private final Logger logger = LogManager.getLogger(PropertiesManager.class);
     private final InputStream inputStream;

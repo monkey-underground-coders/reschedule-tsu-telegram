@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.connection.IDatabaseManager;
+import space.delusive.tversu.connection.DatabaseManager;
 import space.delusive.tversu.dao.UserDao;
 import space.delusive.tversu.entity.User;
 
@@ -14,10 +14,10 @@ import java.sql.*;
 public class UserDaoImpl implements UserDao {
     private static final Logger logger = LogManager.getLogger(UserDaoImpl.class);
 
-    private final IDatabaseManager databaseManager;
+    private final DatabaseManager databaseManager;
 
     @Autowired
-    public UserDaoImpl(IDatabaseManager databaseManager) {
+    public UserDaoImpl(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 

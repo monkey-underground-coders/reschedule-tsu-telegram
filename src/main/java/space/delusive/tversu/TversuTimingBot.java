@@ -16,9 +16,9 @@ import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.NoSuchButtonException;
-import space.delusive.tversu.manager.IDataManager;
-import space.delusive.tversu.manager.IKeyboardManager;
-import space.delusive.tversu.manager.impl.KeyboardManager;
+import space.delusive.tversu.manager.DataManager;
+import space.delusive.tversu.manager.KeyboardManager;
+import space.delusive.tversu.manager.impl.KeyboardManagerImpl;
 import space.delusive.tversu.service.FacultyService;
 import space.delusive.tversu.service.TimingService;
 import space.delusive.tversu.service.UserService;
@@ -35,8 +35,8 @@ import java.util.Optional;
 public class TversuTimingBot extends TelegramLongPollingBot {
     private static final Logger logger = LogManager.getLogger(TversuTimingBot.class);
 
-    private final IDataManager config;
-    private final IDataManager messages;
+    private final DataManager config;
+    private final DataManager messages;
     private final UserService userService;
     private final TimingService timingService;
     private final FacultyService facultyService;
@@ -52,7 +52,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int CHOOSING_DAY_OF_WEEK = 7;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("config") IDataManager config, @Qualifier("messages") IDataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
+    public TversuTimingBot(@Qualifier("config") DataManager config, @Qualifier("messages") DataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
         this.config = config;
         this.messages = messages;
         this.userService = userService;
@@ -64,8 +64,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (!(update.hasMessage() && update.getMessage().hasText()) || !update.getMessage().isUserMessage()) return;
+        Message message = update.getMessage();
+        logger.info("User (ID: {}, FN: {}, LN:{} sent message with text: {}",
+                message.getFrom().getId(), message.getFrom().getFirstName(), message.getFrom().getLastName(), message.getText());
         try {
-            handleIncomingMessage(update.getMessage());
+            handleIncomingMessage(message);
         } catch (TelegramApiException e) {
             logger.error(e);
         }
@@ -250,48 +253,48 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return response;
     }
 
-
     // :register messages
+
 
     // register keyboards:
 
     private ReplyKeyboardMarkup getFacultiesKeyboard() {
         var faculties = facultyService.getFaculties();
-        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         faculties.forEach(keyboardManager::addItem);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getProgramKeyboard(String faculty) {
         var programs = facultyService.getPrograms(faculty);
-        IKeyboardManager keyboardManager = new KeyboardManager(1);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(1);
         programs.forEach(keyboardManager::addItem);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getCoursesKeyboard(User user) {
         var courses = facultyService.getCourses(user.getFaculty(), user.getProgram());
-        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         courses.forEach(course -> keyboardManager.addItem(course.toString()));
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getGroupsKeyboard(User user) {
         var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
-        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         groups.forEach(keyboardManager::addItem);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getSubgroupsKeyboard(User user) {
         int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
-        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         for (int i = 1; i <= subgroups; i++) keyboardManager.addItem(String.valueOf(i));
         return keyboardManager.getKeyboard();
     }
 
-
     // :register keyboards
+
 
     // main menu messages:
 
@@ -441,7 +444,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // main menu keyboards:
 
     private ReplyKeyboardMarkup getMenuKeyboard() {
-        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         keyboardManager.addItem(Button.CURRENT_LESSON.getLocalizedName());
         keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
         keyboardManager.addItemOnNewLine(Button.TODAY_LESSONS.getLocalizedName());
@@ -453,7 +456,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private ReplyKeyboardMarkup getKeyboardOfWorkingDaysForTwoWeeks() { // oh god...
-        IKeyboardManager keyboardManager = new KeyboardManager(2);
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         keyboardManager.addItem(Button.MONDAY_PLUS_WEEK.getLocalizedName());
         keyboardManager.addItem(Button.MONDAY_MINUS_WEEK.getLocalizedName());
         keyboardManager.addItem(Button.TUESDAY_PLUS_WEEK.getLocalizedName());

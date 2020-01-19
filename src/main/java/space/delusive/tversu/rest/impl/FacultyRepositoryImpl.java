@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.FailureRequestException;
-import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.rest.FacultyRepository;
 
 import java.time.LocalDate;
@@ -27,10 +27,10 @@ import java.util.Set;
  */
 @Component
 public class FacultyRepositoryImpl implements FacultyRepository {
-    private final IDataManager config;
+    private final DataManager config;
 
     @Autowired
-    public FacultyRepositoryImpl(@Qualifier("config") IDataManager config) {
+    public FacultyRepositoryImpl(@Qualifier("config") DataManager config) {
         this.config = config;
     }
 

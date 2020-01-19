@@ -3,7 +3,7 @@ package space.delusive.tversu.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.manager.impl.PropertiesManager;
 
 @Configuration
@@ -11,12 +11,12 @@ import space.delusive.tversu.manager.impl.PropertiesManager;
 public class ApplicationContextConfiguration {
 
     @Bean("messages")
-    public IDataManager getMessagesManager() {
+    public DataManager getMessagesManager() {
         return new PropertiesManager("/messages_ru.properties");
     }
 
     @Bean("config")
-    public IDataManager getConfigManager() {
+    public DataManager getConfigManager() {
         return new PropertiesManager("/timingbot.properties");
     }
 }

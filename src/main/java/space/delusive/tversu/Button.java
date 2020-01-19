@@ -1,7 +1,7 @@
 package space.delusive.tversu;
 
 import space.delusive.tversu.exception.NoSuchButtonException;
-import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.manager.impl.PropertiesManager;
 
 enum Button {
@@ -28,7 +28,7 @@ enum Button {
     FRIDAY_MINUS_WEEK("menu.choose.working.day.button.friday.minus"),
     SATURDAY_MINUS_WEEK("menu.choose.working.day.button.saturday.minus");
 
-    private static final IDataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");
+    private static final DataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");
 
     public static Button of(String buttonText) {
         for (Button value : Button.values()) {

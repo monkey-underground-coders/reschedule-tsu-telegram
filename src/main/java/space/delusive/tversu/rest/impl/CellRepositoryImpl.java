@@ -5,17 +5,17 @@ import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.Cell;
-import space.delusive.tversu.manager.IDataManager;
+import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.rest.CellRepository;
 
 import java.util.List;
 
 @Component
 public class CellRepositoryImpl implements CellRepository {
-    private final IDataManager config;
+    private final DataManager config;
 
     @Autowired
-    public CellRepositoryImpl(IDataManager config) {
+    public CellRepositoryImpl(DataManager config) {
         this.config = config;
     }
 
