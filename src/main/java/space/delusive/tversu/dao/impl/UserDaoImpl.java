@@ -1,8 +1,7 @@
 package space.delusive.tversu.dao.impl;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.connection.DatabaseManager;
 import space.delusive.tversu.dao.UserDao;
@@ -11,15 +10,10 @@ import space.delusive.tversu.entity.User;
 import java.sql.*;
 
 @Component
+@RequiredArgsConstructor
+@Log4j2
 public class UserDaoImpl implements UserDao {
-    private static final Logger logger = LogManager.getLogger(UserDaoImpl.class);
-
     private final DatabaseManager databaseManager;
-
-    @Autowired
-    public UserDaoImpl(DatabaseManager databaseManager) {
-        this.databaseManager = databaseManager;
-    }
 
     @Override
     public User getUserById(long id) {
@@ -33,7 +27,7 @@ public class UserDaoImpl implements UserDao {
                 }
             }
         } catch (SQLException e) {
-            logger.error(e);
+            log.error(e);
         }
         return null;
     }
@@ -56,7 +50,7 @@ public class UserDaoImpl implements UserDao {
                 return true;
             }
         } catch (SQLException e) {
-            logger.error(e);
+            log.error(e);
         }
         return false;
     }
@@ -79,7 +73,7 @@ public class UserDaoImpl implements UserDao {
                 return true;
             }
         } catch (SQLException e) {
-            logger.error(e);
+            log.error(e);
         }
         return false;
     }

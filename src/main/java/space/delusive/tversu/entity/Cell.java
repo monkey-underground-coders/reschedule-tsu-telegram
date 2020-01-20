@@ -1,7 +1,11 @@
 package space.delusive.tversu.entity;
 
+import lombok.Getter;
+import lombok.Setter;
 import space.delusive.tversu.util.EmojiUtils;
 
+@Getter
+@Setter
 public class Cell extends Entity {
     private WeekSign weekSign;
     private String fullSubjectName;
@@ -18,118 +22,6 @@ public class Cell extends Entity {
     private byte subgroup;
     private boolean crossPair;
     private String faculty;
-
-    public WeekSign getWeekSign() {
-        return weekSign;
-    }
-
-    public void setWeekSign(WeekSign weekSign) {
-        this.weekSign = weekSign;
-    }
-
-    public String getFullSubjectName() {
-        return fullSubjectName;
-    }
-
-    public void setFullSubjectName(String fullSubjectName) {
-        this.fullSubjectName = fullSubjectName;
-    }
-
-    public String getShortSubjectName() {
-        return shortSubjectName;
-    }
-
-    public void setShortSubjectName(String shortSubjectName) {
-        this.shortSubjectName = shortSubjectName;
-    }
-
-    public String getTeacherName() {
-        return teacherName;
-    }
-
-    public void setTeacherName(String teacherName) {
-        this.teacherName = teacherName;
-    }
-
-    public String getTeacherTitle() {
-        return teacherTitle;
-    }
-
-    public void setTeacherTitle(String teacherTitle) {
-        this.teacherTitle = teacherTitle;
-    }
-
-    public DayOfWeek getDayOfWeek() {
-        return dayOfWeek;
-    }
-
-    public void setDayOfWeek(DayOfWeek dayOfWeek) {
-        this.dayOfWeek = dayOfWeek;
-    }
-
-    public String getStart() {
-        return start;
-    }
-
-    public void setStart(String start) {
-        this.start = start;
-    }
-
-    public String getEnd() {
-        return end;
-    }
-
-    public void setEnd(String end) {
-        this.end = end;
-    }
-
-    public String getAuditoryAddress() {
-        return auditoryAddress;
-    }
-
-    public void setAuditoryAddress(String auditoryAddress) {
-        this.auditoryAddress = auditoryAddress;
-    }
-
-    public int getCourse() {
-        return course;
-    }
-
-    public void setCourse(byte course) {
-        this.course = course;
-    }
-
-    public String getGroup() {
-        return group;
-    }
-
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    public int getSubgroup() {
-        return subgroup;
-    }
-
-    public void setSubgroup(byte subgroup) {
-        this.subgroup = subgroup;
-    }
-
-    public boolean isCrossPair() {
-        return crossPair;
-    }
-
-    public void setCrossPair(boolean crossPair) {
-        this.crossPair = crossPair;
-    }
-
-    public String getFaculty() {
-        return faculty;
-    }
-
-    public void setFaculty(String faculty) {
-        this.faculty = faculty;
-    }
 
     public String toLongString() {
         String[] auditoryData = splitAuditoryInfo();

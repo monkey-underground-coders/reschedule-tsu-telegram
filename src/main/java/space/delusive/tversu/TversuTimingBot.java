@@ -1,7 +1,6 @@
 package space.delusive.tversu;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -32,9 +31,8 @@ import java.util.Map;
 import java.util.Optional;
 
 @Component
+@Log4j2
 public class TversuTimingBot extends TelegramLongPollingBot {
-    private static final Logger logger = LogManager.getLogger(TversuTimingBot.class);
-
     private final DataManager config;
     private final DataManager messages;
     private final UserService userService;
@@ -65,12 +63,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (!(update.hasMessage() && update.getMessage().hasText()) || !update.getMessage().isUserMessage()) return;
         Message message = update.getMessage();
-        logger.info("User (ID: {}, FN: {}, LN:{} sent message with text: {}",
+        log.info("User (ID: {}, FN: {}, LN:{} sent message with text: {}",
                 message.getFrom().getId(), message.getFrom().getFirstName(), message.getFrom().getLastName(), message.getText());
         try {
             handleIncomingMessage(message);
         } catch (TelegramApiException e) {
-            logger.error(e);
+            log.error(e);
         }
     }
 
@@ -303,7 +301,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         try {
             userChoice = Button.of(request.getText());
         } catch (NoSuchButtonException e) {
-            logger.debug(e);
+            log.debug(e);
             return new SendMessage().setText(messages.getString("main.menu.invalid.choice"));
         }
         SendMessage response = null;
@@ -481,7 +479,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         try {
             splittedButtonName = Button.of(messageText).toString().split("_");
         } catch (NoSuchButtonException e) {
-            logger.debug(e);
+            log.debug(e);
             return new SendMessage().setText(messages.getString("timing.specified.day.invalid"));
         }
         DayOfWeek dayOfWeek = DayOfWeek.valueOf(splittedButtonName[0]);

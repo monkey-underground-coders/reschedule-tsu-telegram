@@ -1,19 +1,15 @@
 package space.delusive.tversu.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.dao.UserDao;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.service.UserService;
 
 @Component
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserDao userDao;
-
-    @Autowired
-    public UserServiceImpl(UserDao userDao) {
-        this.userDao = userDao;
-    }
 
     @Override
     public User getUserById(long id) {

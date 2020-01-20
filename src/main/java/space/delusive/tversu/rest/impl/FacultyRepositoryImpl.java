@@ -4,8 +4,7 @@ import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.FailureRequestException;
@@ -26,14 +25,9 @@ import java.util.Set;
  * @author Delusive-
  */
 @Component
+@RequiredArgsConstructor
 public class FacultyRepositoryImpl implements FacultyRepository {
     private final DataManager config;
-
-    @Autowired
-    public FacultyRepositoryImpl(@Qualifier("config") DataManager config) {
-        this.config = config;
-    }
-
 
     /**
      * Получение списка доступных факультетов

@@ -1,6 +1,6 @@
 package space.delusive.tversu.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.rest.FacultyRepository;
@@ -10,13 +10,9 @@ import java.util.List;
 import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class FacultyServiceImpl implements FacultyService {
     private final FacultyRepository facultyRepository;
-
-    @Autowired
-    public FacultyServiceImpl(FacultyRepository facultyRepository) {
-        this.facultyRepository = facultyRepository;
-    }
 
     @Override
     public List<String> getFaculties() {

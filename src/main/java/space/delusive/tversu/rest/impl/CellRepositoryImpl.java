@@ -2,7 +2,7 @@ package space.delusive.tversu.rest.impl;
 
 import kong.unirest.GenericType;
 import kong.unirest.Unirest;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.manager.DataManager;
@@ -11,13 +11,9 @@ import space.delusive.tversu.rest.CellRepository;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class CellRepositoryImpl implements CellRepository {
     private final DataManager config;
-
-    @Autowired
-    public CellRepositoryImpl(DataManager config) {
-        this.config = config;
-    }
 
     @Override
     public List<Cell> getCells(String facultyId, String groupId) {

@@ -1,5 +1,6 @@
 package space.delusive.tversu.service.impl;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
@@ -15,14 +16,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
+@RequiredArgsConstructor
 public class TimingServiceImpl implements TimingService {
     private final CellRepository cellRepository;
     private final FacultyService facultyService;
-
-    public TimingServiceImpl(CellRepository cellRepository, FacultyService facultyService) {
-        this.cellRepository = cellRepository;
-        this.facultyService = facultyService;
-    }
 
     @Override
     public Optional<Cell> getCurrentLesson(User user) {

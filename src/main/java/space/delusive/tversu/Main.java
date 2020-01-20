@@ -2,8 +2,7 @@ package space.delusive.tversu;
 
 import kong.unirest.GsonObjectMapper;
 import kong.unirest.Unirest;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.telegram.telegrambots.ApiContextInitializer;
@@ -11,9 +10,8 @@ import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import space.delusive.tversu.config.ApplicationContextConfiguration;
 
+@Log4j2
 public class Main {
-    private static final Logger logger = LogManager.getLogger(Main.class);
-
     public static void main(String[] args) {
         Unirest.config().setObjectMapper(new GsonObjectMapper());
         ApiContextInitializer.init();
@@ -21,9 +19,9 @@ public class Main {
         ApplicationContext context = new AnnotationConfigApplicationContext(ApplicationContextConfiguration.class);
         try {
             api.registerBot(context.getBean(TversuTimingBot.class));
-            logger.info("TverSU Timing Bot started successfully!");
+            log.info("TverSU Timing Bot started successfully!");
         } catch (TelegramApiRequestException e) {
-            logger.error(e);
+            log.error(e);
         }
     }
 }
