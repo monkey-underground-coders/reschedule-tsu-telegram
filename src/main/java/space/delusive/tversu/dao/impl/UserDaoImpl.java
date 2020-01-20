@@ -2,83 +2,21 @@ package space.delusive.tversu.dao.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.connection.DatabaseManager;
 import space.delusive.tversu.dao.UserDao;
 import space.delusive.tversu.entity.User;
 
-import java.sql.*;
+import java.sql.Date;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 @Log4j2
 public class UserDaoImpl implements UserDao {
-    private final DatabaseManager databaseManager;
-
-    @Override
-    public User getUserById(long id) {
-        try (Connection connection = databaseManager.getConnection()) {
-            String query = "SELECT `id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course` FROM `users` WHERE `id` = ?";
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setLong(1, id);
-                try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                    if (!resultSet.next()) return null;
-                    return extractUserFromResultSet(resultSet);
-                }
-            }
-        } catch (SQLException e) {
-            log.error(e);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean addUser(User user) {
-        try (Connection connection = databaseManager.getConnection()) {
-            String query = "INSERT INTO `users` (`id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setLong(1, user.getId());
-                preparedStatement.setInt(2, user.getState());
-                preparedStatement.setString(3, user.getFaculty());
-                preparedStatement.setString(4, user.getGroup());
-                preparedStatement.setInt(5, user.getSubgroup());
-                preparedStatement.setDate(6, user.getRegisterDate());
-                preparedStatement.setDate(7, user.getLastMessageDate());
-                preparedStatement.setString(8, user.getProgram());
-                preparedStatement.setInt(9, user.getCourse());
-                preparedStatement.executeUpdate();
-                return true;
-            }
-        } catch (SQLException e) {
-            log.error(e);
-        }
-        return false;
-    }
-
-    @Override
-    public boolean updateUser(User user) {
-        try (Connection connection = databaseManager.getConnection()) {
-            String query = "UPDATE `users` SET `state` = ?, `faculty` = ?, `group` = ?, `subgroup` = ?, `register_date` = ?, `last_message_date` = ?, `program` = ?, `course` = ? WHERE `id` = ?";
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setInt(1, user.getState());
-                preparedStatement.setString(2, user.getFaculty());
-                preparedStatement.setString(3, user.getGroup());
-                preparedStatement.setInt(4, user.getSubgroup());
-                preparedStatement.setDate(5, user.getRegisterDate());
-                preparedStatement.setDate(6, user.getLastMessageDate());
-                preparedStatement.setString(7, user.getProgram());
-                preparedStatement.setInt(8, user.getCourse());
-                preparedStatement.setLong(9, user.getId());
-                preparedStatement.executeUpdate();
-                return true;
-            }
-        } catch (SQLException e) {
-            log.error(e);
-        }
-        return false;
-    }
-
-    private User extractUserFromResultSet(ResultSet resultSet) throws SQLException {
+    private final JdbcTemplate jdbcTemplate;
+    private final RowMapper<User> rowMapper = (resultSet, i) -> {
         long id = resultSet.getLong("id");
         int state = resultSet.getInt("state");
         String faculty = resultSet.getString("faculty");
@@ -89,5 +27,27 @@ public class UserDaoImpl implements UserDao {
         Date registerDate = resultSet.getDate("register_date");
         Date lastMessageDate = resultSet.getDate("last_message_date");
         return new User(id, state, faculty, program, course, group, subgroup, registerDate, lastMessageDate);
+    };
+
+    @Override
+    public User getUserById(long id) {
+        String query = "SELECT `id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course` FROM `users` WHERE `id` = ?";
+        Optional<User> user = jdbcTemplate.query(query, new Object[]{id}, rowMapper).stream().findAny();
+        return user.orElse(null);
     }
+
+    @Override
+    public boolean addUser(User user) {
+        String query = "INSERT INTO `users` (`id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return jdbcTemplate.update(query, user.getId(), user.getState(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse())
+                == 1;
+    }
+
+    @Override
+    public boolean updateUser(User user) {
+        String query = "UPDATE `users` SET `state` = ?, `faculty` = ?, `group` = ?, `subgroup` = ?, `register_date` = ?, `last_message_date` = ?, `program` = ?, `course` = ? WHERE `id` = ?";
+        return jdbcTemplate.update(query, user.getState(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse(), user.getId())
+                == 1;
+    }
+
 }
