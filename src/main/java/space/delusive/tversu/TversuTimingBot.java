@@ -63,7 +63,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (!(update.hasMessage() && update.getMessage().hasText()) || !update.getMessage().isUserMessage()) return;
         Message message = update.getMessage();
-        log.info("User (ID: {}, FN: {}, LN:{} sent message with text: {}",
+        log.info("User (ID: {}, FN: {}, LN: {}) sent message with text: {}",
                 message.getFrom().getId(), message.getFrom().getFirstName(), message.getFrom().getLastName(), message.getText());
         try {
             handleIncomingMessage(message);
