@@ -302,7 +302,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             userChoice = Button.of(request.getText());
         } catch (NoSuchButtonException e) {
             log.debug(e);
-            return new SendMessage().setText(messages.getString("main.menu.invalid.choice"));
+            return new SendMessage()
+                    .setText(messages.getString("main.menu.invalid.choice"))
+                    .setReplyMarkup(getMenuKeyboard());
         }
         SendMessage response = null;
         switch (userChoice) {
