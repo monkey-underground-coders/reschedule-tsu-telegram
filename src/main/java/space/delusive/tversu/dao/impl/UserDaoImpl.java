@@ -31,21 +31,21 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public User getUserById(long id) {
-        String query = "SELECT `id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course` FROM `users` WHERE `id` = ?";
+        String query = "SELECT \"id\", \"state\", \"faculty\", \"group\", \"subgroup\", \"register_date\", \"last_message_date\", \"program\", \"course\" FROM public.\"users\" WHERE \"id\" = ?";
         Optional<User> user = jdbcTemplate.query(query, new Object[]{id}, rowMapper).stream().findAny();
         return user.orElse(null);
     }
 
     @Override
     public boolean addUser(User user) {
-        String query = "INSERT INTO `users` (`id`, `state`, `faculty`, `group`, `subgroup`, `register_date`, `last_message_date`, `program`, `course`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String query = "INSERT INTO public.\"users\" (\"id\", \"state\", \"faculty\", \"group\", \"subgroup\", \"register_date\", \"last_message_date\", \"program\", \"course\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         return jdbcTemplate.update(query, user.getId(), user.getState(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse())
                 == 1;
     }
 
     @Override
     public boolean updateUser(User user) {
-        String query = "UPDATE `users` SET `state` = ?, `faculty` = ?, `group` = ?, `subgroup` = ?, `register_date` = ?, `last_message_date` = ?, `program` = ?, `course` = ? WHERE `id` = ?";
+        String query = "UPDATE public.\"users\" SET \"state\" = ?, \"faculty\" = ?, \"group\" = ?, \"subgroup\" = ?, \"register_date\" = ?, \"last_message_date\" = ?, \"program\" = ?, \"course\" = ? WHERE \"id\" = ?";
         return jdbcTemplate.update(query, user.getState(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse(), user.getId())
                 == 1;
     }

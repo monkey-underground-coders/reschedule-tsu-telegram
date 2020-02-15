@@ -1,6 +1,6 @@
 package space.delusive.tversu.config;
 
-import com.mysql.cj.jdbc.MysqlDataSource;
+import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -27,7 +27,7 @@ public class ApplicationContextConfiguration {
 
     @Bean
     public JdbcTemplate getJdbcTemplate(@Value("${db.url}") String url, @Value("${db.username}") String username, @Value("${db.password}") String password) {
-        MysqlDataSource dataSource = new MysqlDataSource();
+        PGSimpleDataSource dataSource = new PGSimpleDataSource();
         dataSource.setUrl(url);
         dataSource.setUser(username);
         dataSource.setPassword(password);
