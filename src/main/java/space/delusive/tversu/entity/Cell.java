@@ -50,7 +50,7 @@ public class Cell extends Entity {
         StringBuilder response = new StringBuilder();
         response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(shortSubjectName).append("* \n")
                 .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(shortifyTeacherName()).append("\n")
-                .append("\uD83C\uDFEB ").append("Ауд. ").append(auditoryData[1]).append(", к. ").append(auditoryData[0]);
+                .append("\uD83C\uDFEB ").append("Ауд. ").append(auditoryData[1]).append(", корп. ").append(auditoryData[0]);
         return response.toString();
     }
 
