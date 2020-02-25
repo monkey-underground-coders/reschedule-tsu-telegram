@@ -86,30 +86,40 @@ public class TimingServiceImpl implements TimingService {
                 .filter(cell -> cell.getSubgroup() == user.getSubgroup() || cell.getSubgroup() == 0);
     }
 
-    // i think i need to simplify this one, but now i'm too lazy to do it :p
+    // not efficient but in this case this can be forgiven I think :p
     private void uniteSimilarCells(List<Cell> cells) {
-        List<Cell> unitedCells = new ArrayList<>();
-        for (Cell cell : cells) {
-            if (unitedCells.contains(cell)) continue;
-            List<Cell> similarCells = getSimilarCells(cell, cells);
-            if (!similarCells.isEmpty()) {
-                unitedCells.addAll(similarCells);
-                similarCells.forEach(cell1 -> cell.setTeacherName(cell.getTeacherName() + ", " + cell1.getTeacherName()));
-            }
+        for (DayOfWeek day : DayOfWeek.values()) {
+            uniteSimilarCellsOfOneDay(day, cells);
         }
-        cells.removeAll(unitedCells);
+    }
+
+    private void uniteSimilarCellsOfOneDay(DayOfWeek dayOfWeek, List<Cell> allCells) {
+        List<Cell> cellsOfDay = allCells.stream()
+                .filter(cell -> cell.getDayOfWeek() == dayOfWeek)
+                .collect(Collectors.toList());
+        List<Cell> unitedCells = new ArrayList<>();
+        for (Cell cell : cellsOfDay) {
+            if (unitedCells.contains(cell)) continue;
+            List<Cell> similarCells = getSimilarCells(cell, cellsOfDay);
+            similarCells.forEach(cell1 -> {
+                if (!cell.getTeacherName().contains(cell1.getTeacherName())) cell.setTeacherName(cell.getTeacherName() + ", " + cell1.getTeacherName());
+                if (!cell.getAuditoryAddress().contains(cell1.getAuditoryAddress())) cell.setAuditoryAddress(cell.getAuditoryAddress() + ", " + cell1.getAuditoryAddress());
+                unitedCells.add(cell1);
+            });
+        }
+        allCells.removeAll(unitedCells);
     }
 
     private List<Cell> getSimilarCells(Cell cell, List<Cell> allCells) {
         List<Cell> similarCells = new ArrayList<>();
         allCells.forEach(oneCell -> {
-                boolean isSimilar = cell.getStart().equals(oneCell.getStart()) &&
-                        cell.getDayOfWeek() == oneCell.getDayOfWeek() &&
-                        cell.getSubgroup() == oneCell.getSubgroup() &&
-                        cell.getWeekSign() == oneCell.getWeekSign() &&
-                        cell.getFullSubjectName().equals(oneCell.getFullSubjectName()) &&
-                        cell != oneCell;
-                if (isSimilar) similarCells.add(oneCell);
+            boolean isSimilar = cell.getStart().equals(oneCell.getStart()) &&
+                    cell.getDayOfWeek() == oneCell.getDayOfWeek() &&
+                    cell.getSubgroup() == oneCell.getSubgroup() &&
+                    (cell.getWeekSign() == oneCell.getWeekSign() || cell.getWeekSign() == WeekSign.ANY || oneCell.getWeekSign() == WeekSign.ANY) &&
+                    cell.getFullSubjectName().equals(oneCell.getFullSubjectName()) &&
+                    cell != oneCell;
+            if (isSimilar) similarCells.add(oneCell);
         });
         return similarCells;
     }

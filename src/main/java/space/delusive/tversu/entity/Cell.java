@@ -2,7 +2,11 @@ package space.delusive.tversu.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import space.delusive.tversu.util.BaseUtils;
 import space.delusive.tversu.util.EmojiUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,38 +28,41 @@ public class Cell extends Entity {
     private String faculty;
 
     public String toLongString() {
-        String[] auditoryData = splitAuditoryInfo();
         StringBuilder response = new StringBuilder();
         response.append("\uD83D\uDCD6 Предмет: ").append(fullSubjectName).append('\n')
                 .append("⏳ Время проведения: с ").append(start).append(" до ").append(end).append('\n')
                 .append("\uD83D\uDC68\u200D\uD83C\uDFEB Преподаватель: ").append(teacherName).append(" (").append(teacherTitle).append(")\n")
-                .append("\uD83C\uDFEB Локация: ").append(auditoryData[0]).append(" корпус, ").append(auditoryData[1]).append(" аудитория").append("\n\n")
+                .append("\uD83C\uDFEB Локация: ").append(formatAuditoryInfo("аудитория", "корпус")).append("\n\n")
                 .append("\uD83D\uDCA0 Занятие проходит ").append(crossPair ? "*совместно с другой группой*" : "*только у вашей группы*");
         return response.toString();
     }
 
     public String toString() {
-        String[] auditoryData = splitAuditoryInfo();
         StringBuilder response = new StringBuilder();
         response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(fullSubjectName).append("*\n")
                 .append("⏳ С ").append(start).append(" до ").append(end).append('\n')
                 .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(teacherName).append('\n')
-                .append("\uD83D\uDCCD Аудитория ").append(auditoryData[1]).append(", корпус ").append(auditoryData[0]).append('\n')
+                .append("\uD83D\uDCCD ").append(formatAuditoryInfo("аудитория", "корпус")).append('\n')
                 .append("\uD83E\uDD32 ").append(crossPair ? "С другой группой" : "Только у вашей группы");
         return response.toString();
     }
 
     public String toShortString() {
-        String[] auditoryData = splitAuditoryInfo();
         StringBuilder response = new StringBuilder();
         response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(shortSubjectName).append("* \n")
                 .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(shortifyTeacherName()).append("\n")
-                .append("\uD83C\uDFEB ").append("Ауд. ").append(auditoryData[1]).append(", корп. ").append(auditoryData[0]);
+                .append("\uD83C\uDFEB ").append(formatAuditoryInfo("ауд.", "корп."));//.append("Ауд. ").append(auditoryData[1]).append(", корп. ").append(auditoryData[0]);
         return response.toString();
     }
 
-    private String[] splitAuditoryInfo() {
-        return auditoryAddress.split("\\|");
+    private String formatAuditoryInfo(String audienceLabel, String buildingLabel) {
+        List<String> messages = new ArrayList<>();
+        String[] locations = auditoryAddress.split(", ");
+        for (String location : locations) {
+            String[] locationData = location.split("\\|");
+            messages.add(audienceLabel + " " + locationData[1] + ", " + buildingLabel + " " + locationData[0]);
+        }
+        return BaseUtils.capitalizeString(String.join("; ", messages));
     }
 
     private String shortifyTeacherName() {
