@@ -492,21 +492,31 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             splittedButtonName = Button.of(messageText).toString().split("_");
         } catch (NoSuchButtonException e) {
             log.debug(e);
-            return new SendMessage().setText(messages.getString("timing.specified.day.invalid"));
+            return new SendMessage()
+                    .setText(messages.getString("timing.specified.day.invalid"))
+                    .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
         }
         DayOfWeek dayOfWeek = DayOfWeek.valueOf(splittedButtonName[0]);
         WeekSign weekSign = WeekSign.valueOf(splittedButtonName[1]);
         List<Cell> lessonsOfSpecifiedDay = timingService.getLessonsOfSpecifiedDay(user, dayOfWeek, weekSign);
-        StringBuilder stringBuilder = new StringBuilder(messages.getString("timing.specified.day")
-                .replaceAll("%day%", BaseUtils.getLocalizedNameOfDayInAccusative(dayOfWeek, messages))
-                .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages)))
-                .append("\n\n");
-        lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
+        SendMessage response = new SendMessage();
+        if (lessonsOfSpecifiedDay.isEmpty()) {
+            log.warn("There is no lessons found for faculty \"{}\", course \"{}\", group \"{}\" and subgroup \"{}\"",
+                    user.getFaculty(), user.getCourse(), user.getGroup(), user.getSubgroup());
+            response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages,
+                    "timing.specified.day.no.lessons"));
+        } else {
+            StringBuilder stringBuilder = new StringBuilder(
+                    BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages, "timing.specified.day")
+                    .replaceAll("%day%", BaseUtils.getLocalizedNameOfDayInAccusative(dayOfWeek, messages))
+                    .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages)))
+                    .append("\n\n");
+            lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
+            response.setText(stringBuilder.toString());
+        }
         user.setState(MAIN_MENU);
         userService.updateUser(user);
-        return new SendMessage()
-                .setText(stringBuilder.toString())
-                .setReplyMarkup(getMenuKeyboard());
+        return response.setReplyMarkup(getMenuKeyboard());
     }
 }
 

@@ -20,4 +20,10 @@ public class BaseUtils {
     public static String getLocalizedNameOfWeekSign(WeekSign weekSign, DataManager messages) {
         return messages.getString("week.sign." + weekSign.toString().toLowerCase());
     }
+
+    public static String getFormattedMessageInAccusative(DayOfWeek dayOfWeek, WeekSign weekSign, DataManager messages, String propertyName) {
+        return messages.getString(propertyName)
+                .replaceAll("%day%", BaseUtils.getLocalizedNameOfDayInAccusative(dayOfWeek, messages))
+                .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages));
+    }
 }
