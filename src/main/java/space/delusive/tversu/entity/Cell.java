@@ -7,6 +7,7 @@ import space.delusive.tversu.util.EmojiUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 @Setter
@@ -31,7 +32,7 @@ public class Cell extends Entity {
         StringBuilder response = new StringBuilder();
         response.append("\uD83D\uDCD6 Предмет: ").append(fullSubjectName).append('\n')
                 .append("⏳ Время проведения: с ").append(start).append(" до ").append(end).append('\n')
-                .append("\uD83D\uDC68\u200D\uD83C\uDFEB Преподаватель: ").append(teacherName).append(" (").append(teacherTitle).append(")\n")
+                .append("\uD83D\uDC68\u200D\uD83C\uDFEB Преподаватель: ").append(Objects.toString(teacherName, "не указан")).append(" (").append(teacherTitle).append(")\n")
                 .append("\uD83C\uDFEB Локация: ").append(formatAuditoryInfo("аудитория", "корпус")).append("\n\n")
                 .append("\uD83D\uDCA0 Занятие проходит ").append(crossPair ? "*совместно с другой группой*" : "*только у вашей группы*");
         return response.toString();
@@ -41,7 +42,7 @@ public class Cell extends Entity {
         StringBuilder response = new StringBuilder();
         response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(fullSubjectName).append("*\n")
                 .append("⏳ С ").append(start).append(" до ").append(end).append('\n')
-                .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(teacherName).append('\n')
+                .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(Objects.toString(teacherName, "не указан")).append('\n')
                 .append("\uD83D\uDCCD ").append(formatAuditoryInfo("аудитория", "корпус")).append('\n')
                 .append("\uD83E\uDD32 ").append(crossPair ? "С другой группой" : "Только у вашей группы");
         return response.toString();
@@ -51,11 +52,14 @@ public class Cell extends Entity {
         StringBuilder response = new StringBuilder();
         response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(shortSubjectName).append("* \n")
                 .append("\uD83D\uDC68\u200D\uD83C\uDFEB ").append(shortifyTeacherName()).append("\n")
-                .append("\uD83C\uDFEB ").append(formatAuditoryInfo("ауд.", "корп."));//.append("Ауд. ").append(auditoryData[1]).append(", корп. ").append(auditoryData[0]);
+                .append("\uD83C\uDFEB ").append(formatAuditoryInfo("ауд.", "корп."));
         return response.toString();
     }
 
     private String formatAuditoryInfo(String audienceLabel, String buildingLabel) {
+        if (auditoryAddress == null || auditoryAddress.isBlank()) {
+            return "не указана";
+        }
         List<String> messages = new ArrayList<>();
         String[] locations = auditoryAddress.split(", ");
         for (String location : locations) {
@@ -66,17 +70,21 @@ public class Cell extends Entity {
     }
 
     private String shortifyTeacherName() {
+        if (teacherName == null || teacherName.isBlank()) {
+            return "не указан";
+        }
         String[] words = teacherName.split(" ");
         StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; words.length / 3 > i; i++) {
-            stringBuilder.append(words[i*3])
+            stringBuilder.append(words[i * 3])
                     .append(" ")
-                    .append(words[i*3+1].charAt(0))
+                    .append(words[i * 3 + 1].charAt(0))
                     .append(". ")
-                    .append(words[i*3+2].charAt(0))
+                    .append(words[i * 3 + 2].charAt(0))
                     .append(".")
                     .append(", ");
         }
         return stringBuilder.toString().substring(0, stringBuilder.lastIndexOf(","));
+
     }
 }
