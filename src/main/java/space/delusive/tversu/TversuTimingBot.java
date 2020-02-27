@@ -329,6 +329,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             case UNREGISTER:
                 response = messageOnUnregister(request, user);
                 break;
+            case FEEDBACK:
+                response = messageOnFeedback(request, user);
+                break;
         }
         return response;
     }
@@ -438,6 +441,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getFacultiesKeyboard());
     }
 
+    private SendMessage messageOnFeedback(Message request, User user) {
+        return new SendMessage()
+                .setText(messages.getString("feedback"))
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
     // :main menu messages
 
 
@@ -452,6 +461,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         keyboardManager.addItemOnNewLine(Button.REMAINING_LESSONS_OF_WEEK.getLocalizedName());
         keyboardManager.addItemOnNewLine(Button.LESSONS_OF_SPECIFIED_DAY.getLocalizedName());
         keyboardManager.addItemOnNewLine(Button.UNREGISTER.getLocalizedName());
+        keyboardManager.addItem(Button.FEEDBACK.getLocalizedName());
         return keyboardManager.getKeyboard();
     }
 

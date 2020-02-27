@@ -13,6 +13,7 @@ enum Button {
     REMAINING_LESSONS_OF_WEEK("menu.main.button.remaining.lessons.of.week"),
     LESSONS_OF_SPECIFIED_DAY("menu.main.button.lessons.of.specified.day"),
     UNREGISTER("menu.main.button.unregister"),
+    FEEDBACK("menu.main.button.feedback"),
 
     // days of weeks:
     MONDAY_PLUS_WEEK("menu.choose.working.day.button.monday.plus"),
