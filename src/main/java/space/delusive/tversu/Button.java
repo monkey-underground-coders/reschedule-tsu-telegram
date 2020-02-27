@@ -4,7 +4,7 @@ import space.delusive.tversu.exception.NoSuchButtonException;
 import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.manager.impl.PropertiesManager;
 
-enum Button {
+public enum Button {
     // main menu:
     CURRENT_LESSON("menu.main.button.current.lesson"),
     NEXT_LESSON("menu.main.button.next.lesson"),
@@ -44,7 +44,7 @@ enum Button {
         this.nameInProps = nameInProps;
     }
 
-    String getLocalizedName() {
+    public String getLocalizedName() {
         return buttonsProps.getString(nameInProps);
     }
 

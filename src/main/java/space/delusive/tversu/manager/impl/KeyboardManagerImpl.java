@@ -2,17 +2,19 @@ package space.delusive.tversu.manager.impl;
 
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import space.delusive.tversu.Button;
+import space.delusive.tversu.manager.KeyboardManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Для удобной работы с клавиатурками, шоб по 1к раз не писать одно и то же =="
+ * Keyboard wrapper that is needed to simplify keyboard usage in the code
  *
  * @author Delusive-
- * @version 1.1
+ * @version 1.2
  */
-public class KeyboardManagerImpl implements space.delusive.tversu.manager.KeyboardManager {
+public class KeyboardManagerImpl implements KeyboardManager {
     private ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
     private List<KeyboardRow> keyboard = new ArrayList<>();
     private KeyboardRow keyboardRow = new KeyboardRow();
@@ -23,9 +25,9 @@ public class KeyboardManagerImpl implements space.delusive.tversu.manager.Keyboa
     }
 
     /**
-     * Добавить итем в клавиатуру
+     * Add item to the keyboard
      *
-     * @param item итем, который надо добавить
+     * @param item Item object that will be added to the keyboard
      */
     @Override
     public void addItem(String item) {
@@ -36,11 +38,17 @@ public class KeyboardManagerImpl implements space.delusive.tversu.manager.Keyboa
         keyboardRow.add(item);
     }
 
+    @Override
+    public void addItem(Button button) {
+        addItem(button.getLocalizedName());
+    }
+
     /**
-     * Добавить итем на новую строку в клавиатуру!
+     * Add item to the keyboard but to new line
      *
-     * @param item то, что надо добавить
+     * @param item Item object that will be added to the new line to the keyboard
      */
+    @Override
     public void addItemOnNewLine(String item) {
         if (isNotEmpty(keyboardRow)) {
             keyboard.add(keyboardRow);
@@ -49,10 +57,15 @@ public class KeyboardManagerImpl implements space.delusive.tversu.manager.Keyboa
         addItem(item);
     }
 
+    @Override
+    public void addItemOnNewLine(Button button) {
+        addItemOnNewLine(button.getLocalizedName());
+    }
+
     /**
-     * Сформировать клавиатуру из полученных ранее данных
+     * Form the keyboard using data that we received early by add methods
      *
-     * @return Готовая клавиатур_очка
+     * @return Keyboard object that we can use in messages
      */
     @Override
     public ReplyKeyboardMarkup getKeyboard() {
@@ -61,7 +74,7 @@ public class KeyboardManagerImpl implements space.delusive.tversu.manager.Keyboa
         return keyboardMarkup;
     }
 
-    public boolean isNotEmpty(List list) {
+    private boolean isNotEmpty(List list) {
         return !list.isEmpty();
     }
 }

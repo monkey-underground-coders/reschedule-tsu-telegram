@@ -454,31 +454,31 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private ReplyKeyboardMarkup getMenuKeyboard() {
         KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
-        keyboardManager.addItem(Button.CURRENT_LESSON.getLocalizedName());
-        keyboardManager.addItem(Button.NEXT_LESSON.getLocalizedName());
-        keyboardManager.addItemOnNewLine(Button.TODAY_LESSONS.getLocalizedName());
-        keyboardManager.addItemOnNewLine(Button.TOMORROW_LESSONS.getLocalizedName());
-        keyboardManager.addItemOnNewLine(Button.REMAINING_LESSONS_OF_WEEK.getLocalizedName());
-        keyboardManager.addItemOnNewLine(Button.LESSONS_OF_SPECIFIED_DAY.getLocalizedName());
-        keyboardManager.addItemOnNewLine(Button.UNREGISTER.getLocalizedName());
-        keyboardManager.addItem(Button.FEEDBACK.getLocalizedName());
+        keyboardManager.addItem(Button.CURRENT_LESSON);
+        keyboardManager.addItem(Button.NEXT_LESSON);
+        keyboardManager.addItemOnNewLine(Button.TODAY_LESSONS);
+        keyboardManager.addItemOnNewLine(Button.TOMORROW_LESSONS);
+        keyboardManager.addItemOnNewLine(Button.REMAINING_LESSONS_OF_WEEK);
+        keyboardManager.addItemOnNewLine(Button.LESSONS_OF_SPECIFIED_DAY);
+        keyboardManager.addItemOnNewLine(Button.UNREGISTER);
+        keyboardManager.addItem(Button.FEEDBACK);
         return keyboardManager.getKeyboard();
     }
 
     private ReplyKeyboardMarkup getKeyboardOfWorkingDaysForTwoWeeks() { // oh god...
         KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
-        keyboardManager.addItem(Button.MONDAY_PLUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.MONDAY_MINUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.TUESDAY_PLUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.TUESDAY_MINUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.WEDNESDAY_PLUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.WEDNESDAY_MINUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.THURSDAY_PLUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.THURSDAY_MINUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.FRIDAY_PLUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.FRIDAY_MINUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.SATURDAY_PLUS_WEEK.getLocalizedName());
-        keyboardManager.addItem(Button.SATURDAY_MINUS_WEEK.getLocalizedName());
+        keyboardManager.addItem(Button.MONDAY_PLUS_WEEK);
+        keyboardManager.addItem(Button.MONDAY_MINUS_WEEK);
+        keyboardManager.addItem(Button.TUESDAY_PLUS_WEEK);
+        keyboardManager.addItem(Button.TUESDAY_MINUS_WEEK);
+        keyboardManager.addItem(Button.WEDNESDAY_PLUS_WEEK);
+        keyboardManager.addItem(Button.WEDNESDAY_MINUS_WEEK);
+        keyboardManager.addItem(Button.THURSDAY_PLUS_WEEK);
+        keyboardManager.addItem(Button.THURSDAY_MINUS_WEEK);
+        keyboardManager.addItem(Button.FRIDAY_PLUS_WEEK);
+        keyboardManager.addItem(Button.FRIDAY_MINUS_WEEK);
+        keyboardManager.addItem(Button.SATURDAY_PLUS_WEEK);
+        keyboardManager.addItem(Button.SATURDAY_MINUS_WEEK);
         return keyboardManager.getKeyboard();
     }
 
@@ -503,7 +503,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         if (lessonsOfSpecifiedDay.isEmpty()) {
             log.warn("There is no lessons found for faculty \"{}\", course \"{}\", group \"{}\" and subgroup \"{}\"",
                     user.getFaculty(), user.getCourse(), user.getGroup(), user.getSubgroup());
-            response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages,
+            response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages, 
                     "timing.specified.day.no.lessons"));
         } else {
             StringBuilder stringBuilder = new StringBuilder(
