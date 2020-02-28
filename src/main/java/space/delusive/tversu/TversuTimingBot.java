@@ -171,84 +171,109 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private SendMessage messageOnChoosingProgram(Message request, User user) {
-        SendMessage response = new SendMessage();
-        if (!facultyService.getPrograms(user.getFaculty()).contains(request.getText())) {
-            response.setText(messages.getString("invalid.program"));
-            response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
-        } else {
-            user.setProgram(request.getText());
-            user.setState(CHOOSING_COURSE);
-            userService.updateUser(user);
-            response.setText(messages.getString("choose.course"));
-            response.setReplyMarkup(getCoursesKeyboard(user));
-        }
-        return response;
+        return processBackButtonWhileRegister(request, user, getFacultiesKeyboard(), "back.to.faculties")
+                .orElseGet(() -> {
+                    SendMessage response = new SendMessage();
+                    if (!facultyService.getPrograms(user.getFaculty()).contains(request.getText())) {
+                        response.setText(messages.getString("invalid.program"));
+                        response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
+                    } else {
+                        user.setProgram(request.getText());
+                        user.setState(CHOOSING_COURSE);
+                        userService.updateUser(user);
+                        response.setText(messages.getString("choose.course"));
+                        response.setReplyMarkup(getCoursesKeyboard(user));
+                    }
+                    return (response);
+                });
     }
 
     private SendMessage messageOnChoosingCourse(Message request, User user) {
-        SendMessage response = new SendMessage();
-        try {
-            int course = Integer.parseInt(request.getText());
-            if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
-                user.setState(CHOOSING_GROUP);
-                user.setCourse(course);
-                userService.updateUser(user);
-                response.setText(messages.getString("choose.group"));
-                response.setReplyMarkup(getGroupsKeyboard(user));
-            } else {
-                throw new NumberFormatException();
-            }
-        } catch (NumberFormatException e) {
-            response.setText(messages.getString("invalid.course"));
-            response.setReplyMarkup(getCoursesKeyboard(user));
-        }
-        return response;
+        return processBackButtonWhileRegister(request, user, getProgramKeyboard(user.getFaculty()), "back.to.programs")
+                .orElseGet(() -> {
+                    SendMessage response = new SendMessage();
+                    try {
+                        int course = Integer.parseInt(request.getText());
+                        if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
+                            user.setState(CHOOSING_GROUP);
+                            user.setCourse(course);
+                            userService.updateUser(user);
+                            response.setText(messages.getString("choose.group"));
+                            response.setReplyMarkup(getGroupsKeyboard(user));
+                        } else {
+                            throw new NumberFormatException();
+                        }
+                    } catch (NumberFormatException e) {
+                        response.setText(messages.getString("invalid.course"));
+                        response.setReplyMarkup(getCoursesKeyboard(user));
+                    }
+                    return response;
+                });
     }
 
     private SendMessage messageOnChoosingGroup(Message request, User user) {
-        SendMessage response = new SendMessage();
-        var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
-        if (!groups.contains(request.getText())) {
-            response.setText(messages.getString("invalid.group"));
-            response.setReplyMarkup(getGroupsKeyboard(user));
-        } else {
-            user.setGroup(request.getText());
-            int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
-            if (subgroups == 0) {
-                user.setSubgroup(0);
-                user.setState(MAIN_MENU);
-                response.setText(messages.getString("register.end"));
-                response.setReplyMarkup(getMenuKeyboard());
-            } else {
-                user.setState(CHOOSING_SUBGROUP);
-                response.setText(messages.getString("choose.subgroup"));
-                response.setReplyMarkup(getSubgroupsKeyboard(user));
-            }
-            userService.updateUser(user);
-        }
-        return response;
+        return processBackButtonWhileRegister(request, user, getCoursesKeyboard(user), "back.to.courses")
+                .orElseGet(() -> {
+                    SendMessage response = new SendMessage();
+                    var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
+                    if (!groups.contains(request.getText())) {
+                        response.setText(messages.getString("invalid.group"));
+                        response.setReplyMarkup(getGroupsKeyboard(user));
+                    } else {
+                        user.setGroup(request.getText());
+                        int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+                        if (subgroups == 0) {
+                            user.setSubgroup(0);
+                            user.setState(MAIN_MENU);
+                            response.setText(messages.getString("register.end"));
+                            response.setReplyMarkup(getMenuKeyboard());
+                        } else {
+                            user.setState(CHOOSING_SUBGROUP);
+                            response.setText(messages.getString("choose.subgroup"));
+                            response.setReplyMarkup(getSubgroupsKeyboard(user));
+                        }
+                        userService.updateUser(user);
+                    }
+                    return response;
+                });
     }
 
     private SendMessage messageOnChoosingSubgroup(Message request, User user) {
-        SendMessage response = new SendMessage();
-        int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
-        int subgroup;
-        try {
-            subgroup = Integer.parseInt(request.getText());
-            if (subgroup > subgroups || subgroup < 1) {
-                throw new NumberFormatException();
-            } else {
-                user.setState(MAIN_MENU);
-                user.setSubgroup(subgroup);
-                userService.updateUser(user);
-                response.setText(messages.getString("register.end"));
-                response.setReplyMarkup(getMenuKeyboard());
-            }
-        } catch (NumberFormatException e) {
-            response.setText(messages.getString("invalid.subgroup"));
-            response.setReplyMarkup(getSubgroupsKeyboard(user));
+        return processBackButtonWhileRegister(request, user, getGroupsKeyboard(user), "back.to.groups")
+                .orElseGet(() -> {
+                    SendMessage response = new SendMessage();
+                    int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+                    int subgroup;
+                    try {
+                        subgroup = Integer.parseInt(request.getText());
+                        if (subgroup > subgroups || subgroup < 1) {
+                            throw new NumberFormatException();
+                        } else {
+                            user.setState(MAIN_MENU);
+                            user.setSubgroup(subgroup);
+                            userService.updateUser(user);
+                            response.setText(messages.getString("register.end"));
+                            response.setReplyMarkup(getMenuKeyboard());
+                        }
+                    } catch (NumberFormatException e) {
+                        response.setText(messages.getString("invalid.subgroup"));
+                        response.setReplyMarkup(getSubgroupsKeyboard(user));
+                    }
+                    return response;
+                });
+    }
+
+    private Optional<SendMessage> processBackButtonWhileRegister(Message request, User user, ReplyKeyboardMarkup replyKeyboardMarkup, String messagePlaceholder) {
+        boolean isNotBackButtonPressed = !request.getText().equals(Button.TO_PREVIOUS_STAGE.getLocalizedName());
+        if (isNotBackButtonPressed) {
+            return Optional.empty();
         }
-        return response;
+        SendMessage response = new SendMessage();
+        user.setState(user.getState() - 1);
+        userService.updateUser(user);
+        response.setText(messages.getString(messagePlaceholder));
+        response.setReplyMarkup(replyKeyboardMarkup);
+        return Optional.of(response);
     }
 
     // :register messages
@@ -267,6 +292,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         var programs = facultyService.getPrograms(faculty);
         KeyboardManager keyboardManager = new KeyboardManagerImpl(1);
         programs.forEach(keyboardManager::addItem);
+        keyboardManager.addItemOnNewLine(Button.TO_PREVIOUS_STAGE);
         return keyboardManager.getKeyboard();
     }
 
@@ -274,6 +300,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         var courses = facultyService.getCourses(user.getFaculty(), user.getProgram());
         KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         courses.forEach(course -> keyboardManager.addItem(course.toString()));
+        keyboardManager.addItemOnNewLine(Button.TO_PREVIOUS_STAGE);
         return keyboardManager.getKeyboard();
     }
 
@@ -281,6 +308,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
         KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         groups.forEach(keyboardManager::addItem);
+        keyboardManager.addItemOnNewLine(Button.TO_PREVIOUS_STAGE);
         return keyboardManager.getKeyboard();
     }
 
@@ -288,6 +316,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
         KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         for (int i = 1; i <= subgroups; i++) keyboardManager.addItem(String.valueOf(i));
+        keyboardManager.addItemOnNewLine(Button.TO_PREVIOUS_STAGE);
         return keyboardManager.getKeyboard();
     }
 
@@ -503,13 +532,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         if (lessonsOfSpecifiedDay.isEmpty()) {
             log.warn("There is no lessons found for faculty \"{}\", course \"{}\", group \"{}\" and subgroup \"{}\"",
                     user.getFaculty(), user.getCourse(), user.getGroup(), user.getSubgroup());
-            response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages, 
+            response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages,
                     "timing.specified.day.no.lessons"));
         } else {
             StringBuilder stringBuilder = new StringBuilder(
                     BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages, "timing.specified.day")
-                    .replaceAll("%day%", BaseUtils.getLocalizedNameOfDayInAccusative(dayOfWeek, messages))
-                    .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages)))
+                            .replaceAll("%day%", BaseUtils.getLocalizedNameOfDayInAccusative(dayOfWeek, messages))
+                            .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages)))
                     .append("\n\n");
             lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
             response.setText(stringBuilder.toString());

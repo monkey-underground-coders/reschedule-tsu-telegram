@@ -5,6 +5,9 @@ import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.manager.impl.PropertiesManager;
 
 public enum Button {
+    // register:
+    TO_PREVIOUS_STAGE("register.button.back"),
+
     // main menu:
     CURRENT_LESSON("menu.main.button.current.lesson"),
     NEXT_LESSON("menu.main.button.next.lesson"),
