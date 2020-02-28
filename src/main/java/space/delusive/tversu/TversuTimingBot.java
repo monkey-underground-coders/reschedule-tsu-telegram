@@ -111,7 +111,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             }
         } catch (SoldisWhatTheFuckException e) {
             log.debug(e);
-            response = new SendMessage().setText(messages.getString("groups.was.renamed"));
+            response = new SendMessage()
+                    .setText(messages.getString("groups.was.renamed"))
+                    .setReplyMarkup(getMenuKeyboard());
+            user.setState(MAIN_MENU);
+            userService.updateUser(user);
         }
         response.setChatId(msg.getChatId())
                 .enableMarkdown(true);
