@@ -15,7 +15,7 @@ public enum Button {
     TOMORROW_LESSONS("menu.main.button.tomorrow.lessons"),
     REMAINING_LESSONS_OF_WEEK("menu.main.button.remaining.lessons.of.week"),
     LESSONS_OF_SPECIFIED_DAY("menu.main.button.lessons.of.specified.day"),
-    UNREGISTER("menu.main.button.unregister"),
+    SETTINGS("menu.main.button.settings"),
     FEEDBACK("menu.main.button.feedback"),
 
     // days of weeks:
@@ -30,8 +30,11 @@ public enum Button {
     WEDNESDAY_MINUS_WEEK("menu.choose.working.day.button.wednesday.minus"),
     THURSDAY_MINUS_WEEK("menu.choose.working.day.button.thursday.minus"),
     FRIDAY_MINUS_WEEK("menu.choose.working.day.button.friday.minus"),
-    SATURDAY_MINUS_WEEK("menu.choose.working.day.button.saturday.minus");
+    SATURDAY_MINUS_WEEK("menu.choose.working.day.button.saturday.minus"),
 
+    // settings menu:
+    CHANGE_SETTINGS("menu.settings.button.change"),
+    BACK_TO_MAIN_MENU("menu.settings.button.main.menu");
     private static final DataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");
 
     public static Button of(String buttonText) {

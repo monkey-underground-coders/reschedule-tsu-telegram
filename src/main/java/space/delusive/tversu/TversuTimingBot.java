@@ -49,6 +49,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int CHOOSING_SUBGROUP = 5;
     private static final int MAIN_MENU = 6;
     private static final int CHOOSING_DAY_OF_WEEK = 7;
+    private static final int SETTINGS_MENU = 8;
 
     @Autowired
     public TversuTimingBot(@Qualifier("config") DataManager config, @Qualifier("messages") DataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
@@ -108,6 +109,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 case CHOOSING_DAY_OF_WEEK:
                     response = messageOnChoosingDayOfWeek(msg, user);
                     break;
+                case SETTINGS_MENU:
+                    response = messageOnSettingsMenu(msg, user);
             }
         } catch (SoldisWhatTheFuckException e) {
             log.debug(e);
@@ -365,8 +368,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             case LESSONS_OF_SPECIFIED_DAY:
                 response = messageOnChoseLessonsOfSpecifiedDay(request, user);
                 break;
-            case UNREGISTER:
-                response = messageOnUnregister(request, user);
+            case SETTINGS:
+                response = messageOnSettings(request, user);
                 break;
             case FEEDBACK:
                 response = messageOnFeedback(request, user);
@@ -472,12 +475,18 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
     }
 
-    private SendMessage messageOnUnregister(Message request, User user) {
-        user.setState(CHOOSING_FACULTY);
+    private SendMessage messageOnSettings(Message message, User user) {
+        SendMessage response = new SendMessage();
+        String textResponse = messages.getString("settings")
+                .replaceAll("%faculty%", user.getFaculty())
+                .replaceAll("%program%", user.getProgram())
+                .replaceAll("%course%", String.valueOf(user.getCourse()))
+                .replaceAll("%group%", user.getGroup())
+                .replaceAll("%subgroup%", String.valueOf(user.getSubgroup()));
+        user.setState(SETTINGS_MENU);
         userService.updateUser(user);
-        return new SendMessage()
-                .setText(messages.getString("unregister"))
-                .setReplyMarkup(getFacultiesKeyboard());
+        return response.setText(textResponse)
+                .setReplyMarkup(getSettingsMenuKeyboard());
     }
 
     private SendMessage messageOnFeedback(Message request, User user) {
@@ -499,7 +508,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         keyboardManager.addItemOnNewLine(Button.TOMORROW_LESSONS);
         keyboardManager.addItemOnNewLine(Button.REMAINING_LESSONS_OF_WEEK);
         keyboardManager.addItemOnNewLine(Button.LESSONS_OF_SPECIFIED_DAY);
-        keyboardManager.addItemOnNewLine(Button.UNREGISTER);
+        keyboardManager.addItemOnNewLine(Button.SETTINGS);
         keyboardManager.addItem(Button.FEEDBACK);
         return keyboardManager.getKeyboard();
     }
@@ -521,8 +530,17 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return keyboardManager.getKeyboard();
     }
 
+    private ReplyKeyboardMarkup getSettingsMenuKeyboard() {
+        KeyboardManager keyboardManager = new KeyboardManagerImpl(1);
+        keyboardManager.addItem(Button.CHANGE_SETTINGS);
+        keyboardManager.addItem(Button.BACK_TO_MAIN_MENU);
+        return keyboardManager.getKeyboard();
+    }
+
     // :main menu keyboards
 
+
+    // choosing day of week while want to get timing of specific day:
 
     private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException {
         String messageText = request.getText();
@@ -557,5 +575,50 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         userService.updateUser(user);
         return response.setReplyMarkup(getMenuKeyboard());
     }
+
+    // :choosing day of week while want to get timing of specific day
+
+
+    // settings menu:
+
+    private SendMessage messageOnSettingsMenu(Message request, User user) {
+        Button userChoice;
+        try {
+            userChoice = Button.of(request.getText());
+        } catch (NoSuchButtonException e) {
+            log.debug(e);
+            return new SendMessage()
+                    .setText(messages.getString("settings.menu.invalid.choice"))
+                    .setReplyMarkup(getMenuKeyboard());
+        }
+        SendMessage response = null;
+        switch (userChoice) {
+            case CHANGE_SETTINGS:
+                response = messageOnChangeSettings(request, user);
+                break;
+            case BACK_TO_MAIN_MENU:
+                response = messageOnBackToMainMenu(request, user);
+                break;
+        }
+        return response;
+    }
+
+    private SendMessage messageOnChangeSettings(Message request, User user) {
+        user.setState(CHOOSING_FACULTY);
+        userService.updateUser(user);
+        return new SendMessage()
+                .setText(messages.getString("change.settings"))
+                .setReplyMarkup(getFacultiesKeyboard());
+    }
+
+    private SendMessage messageOnBackToMainMenu(Message request, User user) {
+        user.setState(MAIN_MENU);
+        userService.updateUser(user);
+        return new SendMessage()
+                .setText(messages.getString("settings.menu.back.to.main.menu"))
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
+    // :settings menu
 }
 
