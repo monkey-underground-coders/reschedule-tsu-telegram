@@ -15,6 +15,7 @@ import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.NoSuchButtonException;
+import space.delusive.tversu.exception.SoldisWhatTheFuckException;
 import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.manager.KeyboardManager;
 import space.delusive.tversu.manager.impl.KeyboardManagerImpl;
@@ -91,21 +92,26 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             userService.updateUser(user);
         }
         SendMessage response = null;
-        switch (user.getState()) {
-            case START:
-            case CHOOSING_FACULTY:
-            case CHOOSING_PROGRAM:
-            case CHOOSING_COURSE:
-            case CHOOSING_GROUP:
-            case CHOOSING_SUBGROUP:
-                response = messageOnRegistering(msg, user);
-                break;
-            case MAIN_MENU:
-                response = sendMenuMessage(msg, user);
-                break;
-            case CHOOSING_DAY_OF_WEEK:
-                response = messageOnChoosingDayOfWeek(msg, user);
-                break;
+        try {
+            switch (user.getState()) {
+                case START:
+                case CHOOSING_FACULTY:
+                case CHOOSING_PROGRAM:
+                case CHOOSING_COURSE:
+                case CHOOSING_GROUP:
+                case CHOOSING_SUBGROUP:
+                    response = messageOnRegistering(msg, user);
+                    break;
+                case MAIN_MENU:
+                    response = sendMenuMessage(msg, user);
+                    break;
+                case CHOOSING_DAY_OF_WEEK:
+                    response = messageOnChoosingDayOfWeek(msg, user);
+                    break;
+            }
+        } catch (SoldisWhatTheFuckException e) {
+            log.debug(e);
+            response = new SendMessage().setText(messages.getString("groups.was.renamed"));
         }
         response.setChatId(msg.getChatId())
                 .enableMarkdown(true);
@@ -325,7 +331,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // main menu messages:
 
-    private SendMessage sendMenuMessage(Message request, User user) {
+    private SendMessage sendMenuMessage(Message request, User user) throws SoldisWhatTheFuckException {
         Button userChoice;
         try {
             userChoice = Button.of(request.getText());
@@ -365,7 +371,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return response;
     }
 
-    private SendMessage messageOnChoseCurrentLesson(Message request, User user) {
+    private SendMessage messageOnChoseCurrentLesson(Message request, User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> currentLesson = timingService.getCurrentLesson(user);
         if (currentLesson.isPresent()) {
@@ -379,7 +385,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseNextLesson(Message request, User user) {
+    private SendMessage messageOnChoseNextLesson(Message request, User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> nextLesson = timingService.getNextLesson(user);
         if (nextLesson.isPresent()) {
@@ -393,7 +399,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseTodayLessons(Message request, User user) {
+    private SendMessage messageOnChoseTodayLessons(Message request, User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         List<Cell> todayLessons = timingService.getTodayLessons(user);
         if (todayLessons.isEmpty()) {
@@ -407,7 +413,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseTomorrowLessons(Message request, User user) {
+    private SendMessage messageOnChoseTomorrowLessons(Message request, User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         List<Cell> tomorrowLessons = timingService.getTomorrowOrMondayLessons(user);
         if (tomorrowLessons.isEmpty()) {
@@ -423,7 +429,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseRemainingLessonsOfWeek(Message request, User user) {
+    private SendMessage messageOnChoseRemainingLessonsOfWeek(Message request, User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Map<DayOfWeek, List<Cell>> remainingLessonsOfWeek = timingService.getRemainingLessonsOfWeek(user);
         if (remainingLessonsOfWeek.isEmpty()) {
@@ -514,7 +520,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // :main menu keyboards
 
 
-    private SendMessage messageOnChoosingDayOfWeek(Message request, User user) {
+    private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException {
         String messageText = request.getText();
         String[] splittedButtonName;
         try {

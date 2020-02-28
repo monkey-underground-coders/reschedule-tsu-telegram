@@ -6,6 +6,7 @@ import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
 import space.delusive.tversu.entity.WeekSign;
+import space.delusive.tversu.exception.SoldisWhatTheFuckException;
 import space.delusive.tversu.rest.CellRepository;
 import space.delusive.tversu.service.FacultyService;
 import space.delusive.tversu.service.TimingService;
@@ -22,7 +23,7 @@ public class TimingServiceImpl implements TimingService {
     private final FacultyService facultyService;
 
     @Override
-    public Optional<Cell> getCurrentLesson(User user) {
+    public Optional<Cell> getCurrentLesson(User user) throws SoldisWhatTheFuckException {
         return getTodayLessonsAsStream(user)
                 .filter(cell -> DateUtils.compareTime(cell.getStart(), DateUtils.getCurrentTime()) != -1)
                 .filter(cell -> DateUtils.compareTime(cell.getEnd(), DateUtils.getCurrentTime()) != 1)
@@ -30,26 +31,26 @@ public class TimingServiceImpl implements TimingService {
     }
 
     @Override
-    public Optional<Cell> getNextLesson(User user) {
+    public Optional<Cell> getNextLesson(User user) throws SoldisWhatTheFuckException {
         return getTodayLessonsAsStream(user)
                 .filter(cell -> DateUtils.compareTime(cell.getStart(), DateUtils.getCurrentTime()) == -1)
                 .min((o1, o2) -> DateUtils.compareTime(o2.getStart(), o1.getStart()));
     }
 
     @Override
-    public List<Cell> getTodayLessons(User user) {
+    public List<Cell> getTodayLessons(User user) throws SoldisWhatTheFuckException {
         return getTodayLessonsAsStream(user).collect(Collectors.toList());
     }
 
     @Override
-    public List<Cell> getTomorrowOrMondayLessons(User user) {
+    public List<Cell> getTomorrowOrMondayLessons(User user) throws SoldisWhatTheFuckException {
         DayOfWeek targetDay = DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
                 DayOfWeek.MONDAY : DateUtils.getCurrentDayOfWeek().next();
         return getLessonsOfDayAsStream(user, targetDay, targetDay == DayOfWeek.MONDAY).collect(Collectors.toList());
     }
 
     @Override
-    public Map<DayOfWeek, List<Cell>> getRemainingLessonsOfWeek(User user) {
+    public Map<DayOfWeek, List<Cell>> getRemainingLessonsOfWeek(User user) throws SoldisWhatTheFuckException {
         Map<DayOfWeek, List<Cell>> remainingLessonsOfWeek = new LinkedHashMap<>();
         getLessonsOfWeekAsStream(user, false)
                 .filter(cell -> !cell.getDayOfWeek().isBeforeOf(DateUtils.getCurrentDayOfWeek()))
@@ -63,21 +64,21 @@ public class TimingServiceImpl implements TimingService {
     }
 
     @Override
-    public List<Cell> getLessonsOfSpecifiedDay(User user, DayOfWeek dayOfWeek, WeekSign weekSign) {
+    public List<Cell> getLessonsOfSpecifiedDay(User user, DayOfWeek dayOfWeek, WeekSign weekSign) throws SoldisWhatTheFuckException {
         boolean isCurrentWeek = weekSign.equals(facultyService.getCurrentWeekSign(user.getFaculty()));
         return getLessonsOfDayAsStream(user, dayOfWeek, !isCurrentWeek).collect(Collectors.toList());
     }
 
-    private Stream<Cell> getTodayLessonsAsStream(User user) {
+    private Stream<Cell> getTodayLessonsAsStream(User user) throws SoldisWhatTheFuckException {
         return getLessonsOfDayAsStream(user, DateUtils.getCurrentDayOfWeek(), false);
     }
 
-    private Stream<Cell> getLessonsOfDayAsStream(User user, DayOfWeek day, boolean isNextWeek) {
+    private Stream<Cell> getLessonsOfDayAsStream(User user, DayOfWeek day, boolean isNextWeek) throws SoldisWhatTheFuckException {
         return getLessonsOfWeekAsStream(user, isNextWeek)
                 .filter(cell -> cell.getDayOfWeek() == day);
     }
 
-    private Stream<Cell> getLessonsOfWeekAsStream(User user, boolean isNextWeek) {
+    private Stream<Cell> getLessonsOfWeekAsStream(User user, boolean isNextWeek) throws SoldisWhatTheFuckException {
         List<Cell> cells = cellRepository.getCells(user.getFaculty(), user.getGroup());
         uniteSimilarCells(cells);
         WeekSign targetWeekSign = isNextWeek ? facultyService.getNextWeekSign(user.getFaculty()) : facultyService.getCurrentWeekSign(user.getFaculty());
