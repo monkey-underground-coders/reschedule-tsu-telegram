@@ -4,6 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -52,7 +53,10 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int SETTINGS_MENU = 8;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("config") DataManager config, @Qualifier("messages") DataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
+    public TversuTimingBot(@Qualifier("options") DefaultBotOptions options, @Qualifier("config") DataManager config,
+                           @Qualifier("messages") DataManager messages, UserService userService, FacultyService facultyService,
+                           TimingService timingService) {
+        super(options);
         this.config = config;
         this.messages = messages;
         this.userService = userService;
