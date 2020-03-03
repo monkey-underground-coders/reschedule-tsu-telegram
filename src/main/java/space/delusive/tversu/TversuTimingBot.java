@@ -30,6 +30,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @Component
 @Log4j2
@@ -52,7 +53,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private static final int SETTINGS_MENU = 8;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("config") DataManager config, @Qualifier("messages") DataManager messages, UserService userService, FacultyService facultyService, TimingService timingService) {
+    public TversuTimingBot(@Qualifier("config") DataManager config,
+                           @Qualifier("messages") DataManager messages,
+                           UserService userService,
+                           FacultyService facultyService,
+                           TimingService timingService) {
         this.config = config;
         this.messages = messages;
         this.userService = userService;
@@ -63,7 +68,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (!(update.hasMessage() && update.getMessage().hasText()) || !update.getMessage().isUserMessage()) return;
+        boolean isTextMessage = update.hasMessage() && update.getMessage().hasText();
+        if (!isTextMessage || !update.getMessage().isUserMessage()) return;
         Message message = update.getMessage();
         log.info("User (ID: {}, FN: {}, LN: {}) sent message with text: {}",
                 message.getFrom().getId(), message.getFrom().getFirstName(), message.getFrom().getLastName(), message.getText());
@@ -114,11 +120,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             }
         } catch (SoldisWhatTheFuckException e) {
             log.debug(e);
-            response = new SendMessage()
-                    .setText(messages.getString("groups.was.renamed"))
-                    .setReplyMarkup(getMenuKeyboard());
-            user.setState(MAIN_MENU);
-            userService.updateUser(user);
+            response = messageOnSoldisWhatTheFuckException(user);
         }
         response.setChatId(msg.getChatId())
                 .enableMarkdown(true);
@@ -131,6 +133,23 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return userService.getUserById(userId);
     }
 
+    private void updateUserWithState(User user, int state) {
+        user.setState(state);
+        userService.updateUser(user);
+    }
+
+
+    // exception messages:
+
+    private SendMessage messageOnSoldisWhatTheFuckException(User user) {
+        updateUserWithState(user, MAIN_MENU);
+        return new SendMessage()
+                .setText(messages.getString("groups.was.renamed"))
+                .setReplyMarkup(getMenuKeyboard());
+    }
+
+    // :exception messages
+
 
     // register messages:
 
@@ -138,7 +157,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         SendMessage response = null;
         switch (user.getState()) {
             case START:
-                response = messageOnStart(msg, user);
+                response = messageOnStart(user);
                 break;
             case CHOOSING_FACULTY:
                 response = messageOnChoosingFaculty(msg, user);
@@ -159,12 +178,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return response;
     }
 
-    private SendMessage messageOnStart(Message request, User user) {
+    private SendMessage messageOnStart(User user) {
         SendMessage response = new SendMessage();
         response.setText(messages.getString("start"))
                 .setReplyMarkup(getFacultiesKeyboard());
-        user.setState(CHOOSING_FACULTY);
-        userService.updateUser(user);
+        updateUserWithState(user, CHOOSING_FACULTY);
         return response;
     }
 
@@ -175,8 +193,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             response.setReplyMarkup(getFacultiesKeyboard());
         } else {
             user.setFaculty(request.getText());
-            user.setState(CHOOSING_PROGRAM);
-            userService.updateUser(user);
+            updateUserWithState(user, CHOOSING_PROGRAM);
             response.setText(messages.getString("choose.program"));
             response.setReplyMarkup(getProgramKeyboard(request.getText()));
         }
@@ -192,8 +209,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                         response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
                     } else {
                         user.setProgram(request.getText());
-                        user.setState(CHOOSING_COURSE);
-                        userService.updateUser(user);
+                        updateUserWithState(user, CHOOSING_COURSE);
                         response.setText(messages.getString("choose.course"));
                         response.setReplyMarkup(getCoursesKeyboard(user));
                     }
@@ -202,78 +218,78 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private SendMessage messageOnChoosingCourse(Message request, User user) {
+        Supplier<SendMessage> sendMessageSupplier = () -> {
+            SendMessage response = new SendMessage();
+            try {
+                int course = Integer.parseInt(request.getText());
+                if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
+                    user.setCourse(course);
+                    updateUserWithState(user, CHOOSING_GROUP);
+                    response.setText(messages.getString("choose.group"));
+                    response.setReplyMarkup(getGroupsKeyboard(user));
+                } else {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                response.setText(messages.getString("invalid.course"));
+                response.setReplyMarkup(getCoursesKeyboard(user));
+            }
+            return response;
+        };
         return processBackButtonWhileRegister(request, user, getProgramKeyboard(user.getFaculty()), "back.to.programs")
-                .orElseGet(() -> {
-                    SendMessage response = new SendMessage();
-                    try {
-                        int course = Integer.parseInt(request.getText());
-                        if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
-                            user.setState(CHOOSING_GROUP);
-                            user.setCourse(course);
-                            userService.updateUser(user);
-                            response.setText(messages.getString("choose.group"));
-                            response.setReplyMarkup(getGroupsKeyboard(user));
-                        } else {
-                            throw new NumberFormatException();
-                        }
-                    } catch (NumberFormatException e) {
-                        response.setText(messages.getString("invalid.course"));
-                        response.setReplyMarkup(getCoursesKeyboard(user));
-                    }
-                    return response;
-                });
+                .orElseGet(sendMessageSupplier);
     }
 
     private SendMessage messageOnChoosingGroup(Message request, User user) {
+        Supplier<SendMessage> sendMessageSupplier = () -> {
+            SendMessage response = new SendMessage();
+            var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
+            if (!groups.contains(request.getText())) {
+                response.setText(messages.getString("invalid.group"));
+                response.setReplyMarkup(getGroupsKeyboard(user));
+            } else {
+                user.setGroup(request.getText());
+                int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+                if (subgroups == 0) {
+                    user.setSubgroup(0);
+                    updateUserWithState(user, MAIN_MENU);
+                    response.setText(messages.getString("register.end"));
+                    response.setReplyMarkup(getMenuKeyboard());
+                } else {
+                    updateUserWithState(user, CHOOSING_SUBGROUP);
+                    response.setText(messages.getString("choose.subgroup"));
+                    response.setReplyMarkup(getSubgroupsKeyboard(user));
+                }
+            }
+            return response;
+        };
         return processBackButtonWhileRegister(request, user, getCoursesKeyboard(user), "back.to.courses")
-                .orElseGet(() -> {
-                    SendMessage response = new SendMessage();
-                    var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
-                    if (!groups.contains(request.getText())) {
-                        response.setText(messages.getString("invalid.group"));
-                        response.setReplyMarkup(getGroupsKeyboard(user));
-                    } else {
-                        user.setGroup(request.getText());
-                        int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
-                        if (subgroups == 0) {
-                            user.setSubgroup(0);
-                            user.setState(MAIN_MENU);
-                            response.setText(messages.getString("register.end"));
-                            response.setReplyMarkup(getMenuKeyboard());
-                        } else {
-                            user.setState(CHOOSING_SUBGROUP);
-                            response.setText(messages.getString("choose.subgroup"));
-                            response.setReplyMarkup(getSubgroupsKeyboard(user));
-                        }
-                        userService.updateUser(user);
-                    }
-                    return response;
-                });
+                .orElseGet(sendMessageSupplier);
     }
 
     private SendMessage messageOnChoosingSubgroup(Message request, User user) {
+        Supplier<SendMessage> sendMessageSupplier = () -> {
+            SendMessage response = new SendMessage();
+            int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
+            int subgroup;
+            try {
+                subgroup = Integer.parseInt(request.getText());
+                if (subgroup > subgroups || subgroup < 1) {
+                    throw new NumberFormatException();
+                } else {
+                    user.setSubgroup(subgroup);
+                    updateUserWithState(user, MAIN_MENU);
+                    response.setText(messages.getString("register.end"));
+                    response.setReplyMarkup(getMenuKeyboard());
+                }
+            } catch (NumberFormatException e) {
+                response.setText(messages.getString("invalid.subgroup"));
+                response.setReplyMarkup(getSubgroupsKeyboard(user));
+            }
+            return response;
+        };
         return processBackButtonWhileRegister(request, user, getGroupsKeyboard(user), "back.to.groups")
-                .orElseGet(() -> {
-                    SendMessage response = new SendMessage();
-                    int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
-                    int subgroup;
-                    try {
-                        subgroup = Integer.parseInt(request.getText());
-                        if (subgroup > subgroups || subgroup < 1) {
-                            throw new NumberFormatException();
-                        } else {
-                            user.setState(MAIN_MENU);
-                            user.setSubgroup(subgroup);
-                            userService.updateUser(user);
-                            response.setText(messages.getString("register.end"));
-                            response.setReplyMarkup(getMenuKeyboard());
-                        }
-                    } catch (NumberFormatException e) {
-                        response.setText(messages.getString("invalid.subgroup"));
-                        response.setReplyMarkup(getSubgroupsKeyboard(user));
-                    }
-                    return response;
-                });
+                .orElseGet(sendMessageSupplier);
     }
 
     private Optional<SendMessage> processBackButtonWhileRegister(Message request, User user, ReplyKeyboardMarkup replyKeyboardMarkup, String messagePlaceholder) {
@@ -282,8 +298,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             return Optional.empty();
         }
         SendMessage response = new SendMessage();
-        user.setState(user.getState() - 1);
-        userService.updateUser(user);
+        updateUserWithState(user, user.getState() - 1);
         response.setText(messages.getString(messagePlaceholder));
         response.setReplyMarkup(replyKeyboardMarkup);
         return Optional.of(response);
@@ -351,34 +366,34 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         SendMessage response = null;
         switch (userChoice) {
             case CURRENT_LESSON:
-                response = messageOnChoseCurrentLesson(request, user);
+                response = messageOnChoseCurrentLesson(user);
                 break;
             case NEXT_LESSON:
-                response = messageOnChoseNextLesson(request, user);
+                response = messageOnChoseNextLesson(user);
                 break;
             case TODAY_LESSONS:
-                response = messageOnChoseTodayLessons(request, user);
+                response = messageOnChoseTodayLessons(user);
                 break;
             case TOMORROW_LESSONS:
-                response = messageOnChoseTomorrowLessons(request, user);
+                response = messageOnChoseTomorrowLessons(user);
                 break;
             case REMAINING_LESSONS_OF_WEEK:
-                response = messageOnChoseRemainingLessonsOfWeek(request, user);
+                response = messageOnChoseRemainingLessonsOfWeek(user);
                 break;
             case LESSONS_OF_SPECIFIED_DAY:
-                response = messageOnChoseLessonsOfSpecifiedDay(request, user);
+                response = messageOnChoseLessonsOfSpecifiedDay(user);
                 break;
             case SETTINGS:
-                response = messageOnSettings(request, user);
+                response = messageOnSettings(user);
                 break;
             case FEEDBACK:
-                response = messageOnFeedback(request, user);
+                response = messageOnFeedback();
                 break;
         }
         return response;
     }
 
-    private SendMessage messageOnChoseCurrentLesson(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessage messageOnChoseCurrentLesson(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> currentLesson = timingService.getCurrentLesson(user);
         if (currentLesson.isPresent()) {
@@ -392,7 +407,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseNextLesson(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessage messageOnChoseNextLesson(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> nextLesson = timingService.getNextLesson(user);
         if (nextLesson.isPresent()) {
@@ -406,7 +421,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseTodayLessons(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessage messageOnChoseTodayLessons(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         List<Cell> todayLessons = timingService.getTodayLessons(user);
         if (todayLessons.isEmpty()) {
@@ -420,7 +435,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseTomorrowLessons(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessage messageOnChoseTomorrowLessons(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         List<Cell> tomorrowLessons = timingService.getTomorrowOrMondayLessons(user);
         if (tomorrowLessons.isEmpty()) {
@@ -436,7 +451,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseRemainingLessonsOfWeek(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessage messageOnChoseRemainingLessonsOfWeek(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Map<DayOfWeek, List<Cell>> remainingLessonsOfWeek = timingService.getRemainingLessonsOfWeek(user);
         if (remainingLessonsOfWeek.isEmpty()) {
@@ -457,25 +472,26 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .setReplyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseLessonsOfSpecifiedDay(Message request, User user) {
-        user.setState(CHOOSING_DAY_OF_WEEK);
-        userService.updateUser(user);
+    private SendMessage messageOnChoseLessonsOfSpecifiedDay(User user) {
+        updateUserWithState(user, CHOOSING_DAY_OF_WEEK);
         String messageText = messages.getString("timing.specified.day.choose.day");
         if (DateUtils.getCurrentDayOfWeek() == DayOfWeek.SUNDAY) {
-            String nextWeekSign = BaseUtils.getLocalizedNameOfWeekSign(facultyService.getNextWeekSign(user.getFaculty()), messages);
+            WeekSign nextWeekSign = facultyService.getNextWeekSign(user.getFaculty());
+            String localizedNextWeekSign = BaseUtils.getLocalizedNameOfWeekSign(nextWeekSign, messages);
             messageText += messages.getString("timing.specified.day.choose.day.warning")
-                    .replaceAll("%week%", nextWeekSign);
+                    .replaceAll("%week%", localizedNextWeekSign);
         } else {
-            String currentWeekSign = BaseUtils.getLocalizedNameOfWeekSign(facultyService.getCurrentWeekSign(user.getFaculty()), messages);
+            WeekSign currentWeekSign = facultyService.getCurrentWeekSign(user.getFaculty());
+            String localizedCurrentWeekSign = BaseUtils.getLocalizedNameOfWeekSign(currentWeekSign, messages);
             messageText += messages.getString("timing.specified.day.choose.day.current.week.sign")
-                    .replaceAll("%week%", currentWeekSign);
+                    .replaceAll("%week%", localizedCurrentWeekSign);
         }
         return new SendMessage()
                 .setText(messageText)
                 .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
     }
 
-    private SendMessage messageOnSettings(Message message, User user) {
+    private SendMessage messageOnSettings(User user) {
         SendMessage response = new SendMessage();
         String textResponse = messages.getString("settings")
                 .replaceAll("%faculty%", user.getFaculty())
@@ -483,13 +499,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .replaceAll("%course%", String.valueOf(user.getCourse()))
                 .replaceAll("%group%", user.getGroup())
                 .replaceAll("%subgroup%", String.valueOf(user.getSubgroup()));
-        user.setState(SETTINGS_MENU);
-        userService.updateUser(user);
+        updateUserWithState(user, SETTINGS_MENU);
         return response.setText(textResponse)
                 .setReplyMarkup(getSettingsMenuKeyboard());
     }
 
-    private SendMessage messageOnFeedback(Message request, User user) {
+    private SendMessage messageOnFeedback() {
         return new SendMessage()
                 .setText(messages.getString("feedback"))
                 .setReplyMarkup(getMenuKeyboard());
@@ -542,23 +557,23 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // choosing day of week while want to get timing of specific day:
 
-    private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException { // TODO: 3/3/2020 refactor this shit
         String messageText = request.getText();
-        String[] splittedButtonName;
+        String[] splitButtonName;
         try {
-            splittedButtonName = Button.of(messageText).toString().split("_");
+            splitButtonName = Button.of(messageText).toString().split("_");
         } catch (NoSuchButtonException e) {
             log.debug(e);
             return new SendMessage()
                     .setText(messages.getString("timing.specified.day.invalid"))
                     .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
         }
-        DayOfWeek dayOfWeek = DayOfWeek.valueOf(splittedButtonName[0]);
-        WeekSign weekSign = WeekSign.valueOf(splittedButtonName[1]);
+        DayOfWeek dayOfWeek = DayOfWeek.valueOf(splitButtonName[0]);
+        WeekSign weekSign = WeekSign.valueOf(splitButtonName[1]);
         List<Cell> lessonsOfSpecifiedDay = timingService.getLessonsOfSpecifiedDay(user, dayOfWeek, weekSign);
         SendMessage response = new SendMessage();
         if (lessonsOfSpecifiedDay.isEmpty()) {
-            log.warn("There is no lessons found for faculty \"{}\", course \"{}\", group \"{}\" and subgroup \"{}\"",
+            log.warn("There are no lessons found for faculty \"{}\", course \"{}\", group \"{}\" and subgroup \"{}\"",
                     user.getFaculty(), user.getCourse(), user.getGroup(), user.getSubgroup());
             response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages,
                     "timing.specified.day.no.lessons"));
@@ -571,8 +586,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
             response.setText(stringBuilder.toString());
         }
-        user.setState(MAIN_MENU);
-        userService.updateUser(user);
+        updateUserWithState(user, MAIN_MENU);
         return response.setReplyMarkup(getMenuKeyboard());
     }
 
@@ -594,26 +608,24 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         SendMessage response = null;
         switch (userChoice) {
             case CHANGE_SETTINGS:
-                response = messageOnChangeSettings(request, user);
+                response = messageOnChangeSettings(user);
                 break;
             case BACK_TO_MAIN_MENU:
-                response = messageOnBackToMainMenu(request, user);
+                response = messageOnBackToMainMenu(user);
                 break;
         }
         return response;
     }
 
-    private SendMessage messageOnChangeSettings(Message request, User user) {
-        user.setState(CHOOSING_FACULTY);
-        userService.updateUser(user);
+    private SendMessage messageOnChangeSettings(User user) {
+        updateUserWithState(user, CHOOSING_FACULTY);
         return new SendMessage()
                 .setText(messages.getString("change.settings"))
                 .setReplyMarkup(getFacultiesKeyboard());
     }
 
-    private SendMessage messageOnBackToMainMenu(Message request, User user) {
-        user.setState(MAIN_MENU);
-        userService.updateUser(user);
+    private SendMessage messageOnBackToMainMenu(User user) {
+        updateUserWithState(user, MAIN_MENU);
         return new SendMessage()
                 .setText(messages.getString("settings.menu.back.to.main.menu"))
                 .setReplyMarkup(getMenuKeyboard());
