@@ -11,7 +11,7 @@ import java.util.Objects;
 
 @Getter
 @Setter
-public class Cell extends Entity {
+public class Cell {
     private WeekSign weekSign;
     private String fullSubjectName;
     private String shortSubjectName;

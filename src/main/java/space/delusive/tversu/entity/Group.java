@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class Group extends Entity {
+public class Group {
     private String level;
     private String name;
     private int subgroups;

@@ -3,15 +3,16 @@ package space.delusive.tversu.entity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import space.delusive.tversu.BotState;
 
 import java.sql.Date;
 
 @Getter
 @Setter
 @AllArgsConstructor
-public class User extends Entity {
+public class User {
     private long id;
-    private int state;
+    private BotState state;
     private String faculty;
     private String program;
     private int course;

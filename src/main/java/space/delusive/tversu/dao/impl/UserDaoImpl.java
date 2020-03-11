@@ -5,6 +5,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import space.delusive.tversu.BotState;
 import space.delusive.tversu.dao.UserDao;
 import space.delusive.tversu.entity.User;
 
@@ -26,7 +27,7 @@ public class UserDaoImpl implements UserDao {
         int subgroup = resultSet.getInt("subgroup");
         Date registerDate = resultSet.getDate("register_date");
         Date lastMessageDate = resultSet.getDate("last_message_date");
-        return new User(id, state, faculty, program, course, group, subgroup, registerDate, lastMessageDate);
+        return new User(id, BotState.getByOrdinal(state), faculty, program, course, group, subgroup, registerDate, lastMessageDate);
     };
 
     @Override
@@ -39,14 +40,14 @@ public class UserDaoImpl implements UserDao {
     @Override
     public boolean addUser(User user) {
         String query = "INSERT INTO public.\"users\" (\"id\", \"state\", \"faculty\", \"group\", \"subgroup\", \"register_date\", \"last_message_date\", \"program\", \"course\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        return jdbcTemplate.update(query, user.getId(), user.getState(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse())
+        return jdbcTemplate.update(query, user.getId(), user.getState().ordinal(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse())
                 == 1;
     }
 
     @Override
     public boolean updateUser(User user) {
         String query = "UPDATE public.\"users\" SET \"state\" = ?, \"faculty\" = ?, \"group\" = ?, \"subgroup\" = ?, \"register_date\" = ?, \"last_message_date\" = ?, \"program\" = ?, \"course\" = ? WHERE \"id\" = ?";
-        return jdbcTemplate.update(query, user.getState(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse(), user.getId())
+        return jdbcTemplate.update(query, user.getState().ordinal(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse(), user.getId())
                 == 1;
     }
 
