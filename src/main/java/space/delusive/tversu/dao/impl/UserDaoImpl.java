@@ -7,10 +7,12 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import space.delusive.tversu.BotState;
 import space.delusive.tversu.dao.UserDao;
+import space.delusive.tversu.dao.submodel.CourseInfo;
 import space.delusive.tversu.entity.User;
 
 import java.sql.Date;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
@@ -49,6 +51,18 @@ public class UserDaoImpl implements UserDao {
         String query = "UPDATE public.\"users\" SET \"state\" = ?, \"faculty\" = ?, \"group\" = ?, \"subgroup\" = ?, \"register_date\" = ?, \"last_message_date\" = ?, \"program\" = ?, \"course\" = ? WHERE \"id\" = ?";
         return jdbcTemplate.update(query, user.getState().ordinal(), user.getFaculty(), user.getGroup(), user.getSubgroup(), user.getRegisterDate(), user.getLastMessageDate(), user.getProgram(), user.getCourse(), user.getId())
                 == 1;
+    }
+
+    @Override
+    public Stream<CourseInfo> getCoursesCount() {
+        String query = "SELECT \"faculty\", \"program\", \"course\", count(*) as \"count\" FROM public.\"users\" GROUP BY \"faculty\", \"program\", \"course\"";
+        return jdbcTemplate.query(query, new Object[]{}, (resultSet, i) -> {
+            String faculty = resultSet.getString("faculty");
+            String program = resultSet.getString("program");
+            int course = resultSet.getInt("course");
+            int count = resultSet.getInt("count");
+            return new CourseInfo(faculty, program, course, count);
+        }).stream();
     }
 
 }

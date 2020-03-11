@@ -10,6 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import space.delusive.tversu.component.DefaultMetricsRegistrar;
 import space.delusive.tversu.component.MetricsExposer;
 import space.delusive.tversu.component.MockMetricsRegistrar;
+import space.delusive.tversu.dao.UserDao;
 
 @Configuration
 @EnableScheduling
@@ -29,8 +30,8 @@ public class MetricsConfiguration {
 
     @Bean
     @Conditional(MetricsEnabledCondition.class)
-    DefaultMetricsRegistrar defaultMetricsRegistrar(PrometheusMeterRegistry prometheusMeterRegistry) {
-        return new DefaultMetricsRegistrar(prometheusMeterRegistry);
+    DefaultMetricsRegistrar defaultMetricsRegistrar(PrometheusMeterRegistry prometheusMeterRegistry, UserDao userDao) {
+        return new DefaultMetricsRegistrar(prometheusMeterRegistry, userDao);
     }
 
     @Bean
