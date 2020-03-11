@@ -11,6 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import space.delusive.tversu.component.MetricsRegistrar;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
@@ -40,17 +41,19 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private final UserService userService;
     private final TimingService timingService;
     private final FacultyService facultyService;
+    private final MetricsRegistrar metricsRegistrar;
 
     @Autowired
     public TversuTimingBot(@Qualifier("options") DefaultBotOptions options, @Qualifier("config") DataManager config,
                            @Qualifier("messages") DataManager messages, UserService userService, FacultyService facultyService,
-                           TimingService timingService) {
+                           TimingService timingService, MetricsRegistrar metricsRegistrar) {
         super(options);
         this.config = config;
         this.messages = messages;
         this.userService = userService;
         this.facultyService = facultyService;
         this.timingService = timingService;
+        this.metricsRegistrar = metricsRegistrar;
     }
 
 
@@ -78,9 +81,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private void handleIncomingMessage(Message msg) throws TelegramApiException {
-        User user = userService.getUserById(msg.getFrom().getId());
+        long startTime = System.currentTimeMillis();
+        Integer userId = msg.getFrom().getId();
+        User user = userService.getUserById(userId);
+        metricsRegistrar.registerUserCall(userId);
         if (user == null) { //user doesn't exist
-            user = registerAndGetUser(msg.getFrom().getId());
+            user = registerAndGetUser(userId);
         } else {
             user.setLastMessageDate(Date.valueOf(LocalDate.now()));
             userService.updateUser(user);
@@ -117,6 +123,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         response.setChatId(msg.getChatId())
                 .enableMarkdown(true);
         execute(response);
+        long timeConsumed = System.currentTimeMillis() - startTime;
+        metricsRegistrar.registerTimeConsumed(timeConsumed);
     }
 
     private User registerAndGetUser(long userId) {
@@ -130,7 +138,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private SendMessage messageOnRegistering(Message msg, User user) {
         SendMessage response = null;
-        switch (user.getState()) {
+        BotState state = user.getState();
+        metricsRegistrar.registerPath("/reg/" + state.name().toLowerCase());
+        switch (state) {
             case START:
                 response = messageOnStart(msg, user);
                 break;
@@ -343,6 +353,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                     .setReplyMarkup(getMenuKeyboard());
         }
         SendMessage response = null;
+        metricsRegistrar.registerPath("/menu/" + userChoice.name().toLowerCase());
         switch (userChoice) {
             case CURRENT_LESSON:
                 response = messageOnChoseCurrentLesson(request, user);
@@ -537,6 +548,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // choosing day of week while want to get timing of specific day:
 
     private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException {
+        metricsRegistrar.registerPath("/main/day_schedule");
         String messageText = request.getText();
         String[] splittedButtonName;
         try {
@@ -585,6 +597,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                     .setText(messages.getString("settings.menu.invalid.choice"))
                     .setReplyMarkup(getMenuKeyboard());
         }
+        metricsRegistrar.registerPath("/settings/" + userChoice.name().toLowerCase());
         SendMessage response = null;
         switch (userChoice) {
             case CHANGE_SETTINGS:
