@@ -4,12 +4,14 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import space.delusive.tversu.component.MetricsRegistrar;
 import space.delusive.tversu.entity.Cell;
 import space.delusive.tversu.entity.DayOfWeek;
 import space.delusive.tversu.entity.User;
@@ -40,29 +42,21 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private final UserService userService;
     private final TimingService timingService;
     private final FacultyService facultyService;
-
-    //stages
-    private static final int START = 0;
-    private static final int CHOOSING_FACULTY = 1;
-    private static final int CHOOSING_PROGRAM = 2;
-    private static final int CHOOSING_COURSE = 3;
-    private static final int CHOOSING_GROUP = 4;
-    private static final int CHOOSING_SUBGROUP = 5;
-    private static final int MAIN_MENU = 6;
-    private static final int CHOOSING_DAY_OF_WEEK = 7;
-    private static final int SETTINGS_MENU = 8;
+    private final MetricsRegistrar metricsRegistrar;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("config") DataManager config,
+    public TversuTimingBot(@Qualifier("options") DefaultBotOptions options, @Qualifier("config") DataManager config,
                            @Qualifier("messages") DataManager messages,
                            UserService userService,
                            FacultyService facultyService,
-                           TimingService timingService) {
+                           TimingService timingService, MetricsRegistrar metricsRegistrar) {
+        super(options);
         this.config = config;
         this.messages = messages;
         this.userService = userService;
         this.facultyService = facultyService;
         this.timingService = timingService;
+        this.metricsRegistrar = metricsRegistrar;
     }
 
 
@@ -91,9 +85,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private void handleIncomingMessage(Message msg) throws TelegramApiException {
-        User user = userService.getUserById(msg.getFrom().getId());
+        long startTime = System.currentTimeMillis();
+        Integer userId = msg.getFrom().getId();
+        User user = userService.getUserById(userId);
+        metricsRegistrar.registerUserCall(userId);
         if (user == null) { //user doesn't exist
-            user = registerAndGetUser(msg.getFrom().getId());
+            user = registerAndGetUser(userId);
         } else {
             user.setLastMessageDate(Date.valueOf(LocalDate.now()));
             userService.updateUser(user);
@@ -117,6 +114,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                     break;
                 case SETTINGS_MENU:
                     response = messageOnSettingsMenu(msg, user);
+                    break;
             }
         } catch (SoldisWhatTheFuckException e) {
             log.debug(e);
@@ -125,15 +123,17 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         response.setChatId(msg.getChatId())
                 .enableMarkdown(true);
         execute(response);
+        long timeConsumed = System.currentTimeMillis() - startTime;
+        metricsRegistrar.registerTimeConsumed(timeConsumed);
     }
 
     private User registerAndGetUser(long userId) {
         Date currDate = Date.valueOf(LocalDate.now());
-        userService.addUser(new User(userId, START, null, null, 0, null, 0, currDate, currDate));
+        userService.addUser(new User(userId, BotState.START, null, null, 0, null, 0, currDate, currDate));
         return userService.getUserById(userId);
     }
 
-    private void updateUserWithState(User user, int state) {
+    private void updateUserWithState(User user, BotState state) {
         user.setState(state);
         userService.updateUser(user);
     }
@@ -142,7 +142,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // exception messages:
 
     private SendMessage messageOnSoldisWhatTheFuckException(User user) {
-        updateUserWithState(user, MAIN_MENU);
+        updateUserWithState(user, BotState.MAIN_MENU);
         return new SendMessage()
                 .setText(messages.getString("groups.was.renamed"))
                 .setReplyMarkup(getMenuKeyboard());
@@ -155,7 +155,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private SendMessage messageOnRegistering(Message msg, User user) {
         SendMessage response = null;
-        switch (user.getState()) {
+        BotState state = user.getState();
+        metricsRegistrar.registerPath("/reg/" + state.name().toLowerCase());
+        switch (state) {
             case START:
                 response = messageOnStart(user);
                 break;
@@ -182,7 +184,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         SendMessage response = new SendMessage();
         response.setText(messages.getString("start"))
                 .setReplyMarkup(getFacultiesKeyboard());
-        updateUserWithState(user, CHOOSING_FACULTY);
+        updateUserWithState(user, BotState.CHOOSING_FACULTY);
         return response;
     }
 
@@ -193,7 +195,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             response.setReplyMarkup(getFacultiesKeyboard());
         } else {
             user.setFaculty(request.getText());
-            updateUserWithState(user, CHOOSING_PROGRAM);
+            updateUserWithState(user, BotState.CHOOSING_PROGRAM);
             response.setText(messages.getString("choose.program"));
             response.setReplyMarkup(getProgramKeyboard(request.getText()));
         }
@@ -209,7 +211,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                         response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
                     } else {
                         user.setProgram(request.getText());
-                        updateUserWithState(user, CHOOSING_COURSE);
+                        updateUserWithState(user, BotState.CHOOSING_COURSE);
                         response.setText(messages.getString("choose.course"));
                         response.setReplyMarkup(getCoursesKeyboard(user));
                     }
@@ -224,7 +226,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 int course = Integer.parseInt(request.getText());
                 if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
                     user.setCourse(course);
-                    updateUserWithState(user, CHOOSING_GROUP);
+                    updateUserWithState(user, BotState.CHOOSING_GROUP);
                     response.setText(messages.getString("choose.group"));
                     response.setReplyMarkup(getGroupsKeyboard(user));
                 } else {
@@ -252,11 +254,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
                 if (subgroups == 0) {
                     user.setSubgroup(0);
-                    updateUserWithState(user, MAIN_MENU);
+                    updateUserWithState(user, BotState.MAIN_MENU);
                     response.setText(messages.getString("register.end"));
                     response.setReplyMarkup(getMenuKeyboard());
                 } else {
-                    updateUserWithState(user, CHOOSING_SUBGROUP);
+                    updateUserWithState(user, BotState.CHOOSING_SUBGROUP);
                     response.setText(messages.getString("choose.subgroup"));
                     response.setReplyMarkup(getSubgroupsKeyboard(user));
                 }
@@ -278,7 +280,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                     throw new NumberFormatException();
                 } else {
                     user.setSubgroup(subgroup);
-                    updateUserWithState(user, MAIN_MENU);
+                    updateUserWithState(user, BotState.MAIN_MENU);
                     response.setText(messages.getString("register.end"));
                     response.setReplyMarkup(getMenuKeyboard());
                 }
@@ -298,7 +300,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             return Optional.empty();
         }
         SendMessage response = new SendMessage();
-        updateUserWithState(user, user.getState() - 1);
+        updateUserWithState(user, BotState.getByOrdinal(user.getState().ordinal() - 1));
         response.setText(messages.getString(messagePlaceholder));
         response.setReplyMarkup(replyKeyboardMarkup);
         return Optional.of(response);
@@ -364,6 +366,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                     .setReplyMarkup(getMenuKeyboard());
         }
         SendMessage response = null;
+        metricsRegistrar.registerPath("/menu/" + userChoice.name().toLowerCase());
         switch (userChoice) {
             case CURRENT_LESSON:
                 response = messageOnChoseCurrentLesson(user);
@@ -473,7 +476,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private SendMessage messageOnChoseLessonsOfSpecifiedDay(User user) {
-        updateUserWithState(user, CHOOSING_DAY_OF_WEEK);
+        updateUserWithState(user, BotState.CHOOSING_DAY_OF_WEEK);
         String messageText = messages.getString("timing.specified.day.choose.day");
         if (DateUtils.getCurrentDayOfWeek() == DayOfWeek.SUNDAY) {
             WeekSign nextWeekSign = facultyService.getNextWeekSign(user.getFaculty());
@@ -499,7 +502,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .replaceAll("%course%", String.valueOf(user.getCourse()))
                 .replaceAll("%group%", user.getGroup())
                 .replaceAll("%subgroup%", String.valueOf(user.getSubgroup()));
-        updateUserWithState(user, SETTINGS_MENU);
+        updateUserWithState(user, BotState.SETTINGS_MENU);
         return response.setText(textResponse)
                 .setReplyMarkup(getSettingsMenuKeyboard());
     }
@@ -558,6 +561,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     // choosing day of week while want to get timing of specific day:
 
     private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException { // TODO: 3/3/2020 refactor this shit
+        metricsRegistrar.registerPath("/main/day_schedule");
         String messageText = request.getText();
         String[] splitButtonName;
         try {
@@ -586,7 +590,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
             response.setText(stringBuilder.toString());
         }
-        updateUserWithState(user, MAIN_MENU);
+        updateUserWithState(user, BotState.MAIN_MENU);
         return response.setReplyMarkup(getMenuKeyboard());
     }
 
@@ -605,6 +609,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                     .setText(messages.getString("settings.menu.invalid.choice"))
                     .setReplyMarkup(getMenuKeyboard());
         }
+        metricsRegistrar.registerPath("/settings/" + userChoice.name().toLowerCase());
         SendMessage response = null;
         switch (userChoice) {
             case CHANGE_SETTINGS:
@@ -618,14 +623,14 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private SendMessage messageOnChangeSettings(User user) {
-        updateUserWithState(user, CHOOSING_FACULTY);
+        updateUserWithState(user, BotState.CHOOSING_FACULTY);
         return new SendMessage()
                 .setText(messages.getString("change.settings"))
                 .setReplyMarkup(getFacultiesKeyboard());
     }
 
     private SendMessage messageOnBackToMainMenu(User user) {
-        updateUserWithState(user, MAIN_MENU);
+        updateUserWithState(user, BotState.MAIN_MENU);
         return new SendMessage()
                 .setText(messages.getString("settings.menu.back.to.main.menu"))
                 .setReplyMarkup(getMenuKeyboard());
