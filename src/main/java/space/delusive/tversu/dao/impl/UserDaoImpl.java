@@ -5,12 +5,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.BotState;
 import space.delusive.tversu.dao.UserDao;
 import space.delusive.tversu.dao.submodel.CourseInfo;
 import space.delusive.tversu.entity.User;
 
-import java.sql.Date;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -19,18 +17,7 @@ import java.util.stream.Stream;
 @Log4j2
 public class UserDaoImpl implements UserDao {
     private final JdbcTemplate jdbcTemplate;
-    private final RowMapper<User> rowMapper = (resultSet, i) -> {
-        long id = resultSet.getLong("id");
-        int state = resultSet.getInt("state");
-        String faculty = resultSet.getString("faculty");
-        String program = resultSet.getString("program");
-        int course = resultSet.getInt("course");
-        String group = resultSet.getString("group");
-        int subgroup = resultSet.getInt("subgroup");
-        Date registerDate = resultSet.getDate("register_date");
-        Date lastMessageDate = resultSet.getDate("last_message_date");
-        return new User(id, BotState.getByOrdinal(state), faculty, program, course, group, subgroup, registerDate, lastMessageDate);
-    };
+    private final RowMapper<User> rowMapper;
 
     @Override
     public User getUserById(long id) {
@@ -56,13 +43,7 @@ public class UserDaoImpl implements UserDao {
     @Override
     public Stream<CourseInfo> getCoursesCount() {
         String query = "SELECT \"faculty\", \"program\", \"course\", count(*) as \"count\" FROM public.\"users\" WHERE \"faculty\" IS NOT NULL and \"program\" IS NOT NULL and \"course\" IS NOT NULL GROUP BY \"faculty\", \"program\", \"course\"";
-        return jdbcTemplate.query(query, new Object[]{}, (resultSet, i) -> {
-            String faculty = resultSet.getString("faculty");
-            String program = resultSet.getString("program");
-            int course = resultSet.getInt("course");
-            int count = resultSet.getInt("count");
-            return new CourseInfo(faculty, program, course, count);
-        }).stream();
+        return jdbcTemplate.queryForList(query, CourseInfo.class).stream();
     }
 
 }

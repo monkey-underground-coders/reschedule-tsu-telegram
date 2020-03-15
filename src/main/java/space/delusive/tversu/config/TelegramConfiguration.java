@@ -12,7 +12,7 @@ public class TelegramConfiguration {
                                                @Value("${bot.proxy.port:}") String port,
                                                @Value("${bot.proxy.type:}") String proxyType) {
         DefaultBotOptions defaultBotOptions = new DefaultBotOptions();
-        if (!host.equals("")) {
+        if (!host.isBlank()) {
             defaultBotOptions.setProxyHost(host);
             defaultBotOptions.setProxyPort(Integer.parseInt(port));
             defaultBotOptions.setProxyType(DefaultBotOptions.ProxyType.valueOf(proxyType));

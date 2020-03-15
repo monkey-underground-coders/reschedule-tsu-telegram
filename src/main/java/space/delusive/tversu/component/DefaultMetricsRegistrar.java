@@ -4,7 +4,9 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import space.delusive.tversu.dao.UserDao;
 
 import javax.annotation.PostConstruct;
@@ -13,23 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+@Component
+@RequiredArgsConstructor
 public class DefaultMetricsRegistrar implements MetricsRegistrar {
-    private MeterRegistry meterRegistry;
-    private Set<Integer> users;
+    private final Set<Integer> users = new HashSet<>();
+    private final MeterRegistry meterRegistry;
+    private final UserDao userDao;
     private Timer timer;
-    private UserDao userDao;
-
-    public DefaultMetricsRegistrar(MeterRegistry meterRegistry, UserDao userDao) {
-        this.meterRegistry = meterRegistry;
-        this.userDao = userDao;
-        this.users = new HashSet<>();
-    }
 
     @PostConstruct
     public void init() {
         if (meterRegistry != null) {
             meterRegistry.config().commonTags("bot", "telegram");
-            this.timer = meterRegistry.timer("rt.time.per.message");
+            timer = meterRegistry.timer("rt.time.per.message");
             Gauge.builder("rt.users.today", () -> users.size())
                     .register(meterRegistry);
             updateUsersStats();

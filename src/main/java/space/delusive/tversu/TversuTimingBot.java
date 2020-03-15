@@ -45,11 +45,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private final MetricsRegistrar metricsRegistrar;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("options") DefaultBotOptions options, @Qualifier("config") DataManager config,
+    public TversuTimingBot(@Qualifier("options") DefaultBotOptions options,
+                           @Qualifier("config") DataManager config,
                            @Qualifier("messages") DataManager messages,
                            UserService userService,
                            FacultyService facultyService,
-                           TimingService timingService, MetricsRegistrar metricsRegistrar) {
+                           TimingService timingService,
+                           MetricsRegistrar metricsRegistrar) {
         super(options);
         this.config = config;
         this.messages = messages;

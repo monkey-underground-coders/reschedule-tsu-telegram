@@ -26,7 +26,9 @@ public class ApplicationContextConfiguration {
     }
 
     @Bean
-    public JdbcTemplate getJdbcTemplate(@Value("${db.url}") String url, @Value("${db.username}") String username, @Value("${db.password}") String password) {
+    public JdbcTemplate getJdbcTemplate(@Value("${db.url}") String url,
+                                        @Value("${db.username}") String username,
+                                        @Value("${db.password}") String password) {
         PGSimpleDataSource dataSource = new PGSimpleDataSource();
         dataSource.setUrl(url);
         dataSource.setUser(username);

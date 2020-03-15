@@ -3,7 +3,10 @@ package space.delusive.tversu.config;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -44,6 +47,6 @@ public class MetricsConfiguration {
     @Bean
     @Conditional(MetricsEnabledCondition.class)
     MetricsExposer metricsExposer(PrometheusMeterRegistry prometheusMeterRegistry, @Value("${metrics.port}") String port) {
-        return new MetricsExposer(Integer.parseInt(port), prometheusMeterRegistry);
+        return new MetricsExposer(prometheusMeterRegistry, Integer.parseInt(port));
     }
 }
