@@ -55,7 +55,7 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public Stream<CourseInfo> getCoursesCount() {
-        String query = "SELECT \"faculty\", \"program\", \"course\", count(*) as \"count\" FROM public.\"users\" GROUP BY \"faculty\", \"program\", \"course\"";
+        String query = "SELECT \"faculty\", \"program\", \"course\", count(*) as \"count\" FROM public.\"users\" WHERE \"faculty\" IS NOT NULL and \"program\" IS NOT NULL and \"course\" IS NOT NULL GROUP BY \"faculty\", \"program\", \"course\"";
         return jdbcTemplate.query(query, new Object[]{}, (resultSet, i) -> {
             String faculty = resultSet.getString("faculty");
             String program = resultSet.getString("program");
