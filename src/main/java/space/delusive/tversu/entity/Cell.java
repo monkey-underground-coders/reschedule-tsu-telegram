@@ -12,6 +12,29 @@ import java.util.Objects;
 @Getter
 @Setter
 public class Cell {
+    private static final String NEW_LINE = "\n";
+    private static final String EMPTY_STRING = "";
+
+    private static final String SUBJECT_PATTERN = "\uD83D\uDCD6 Предмет: %subject%";
+    private static final String SUBJECT_PLACEHOLDER = "\uD83D\uDCD6 Предмет: %subject%";
+    private static final String LESSON_TIME_PATTERN = "⏳ Время проведения: с %start% до %end%";
+    private static final String LESSON_TIME_START_PLACEHOLDER = "%start%";
+    private static final String LESSON_TIME_END_PLACEHOLDER = "%end%";
+    private static final String TEACHER_PATTERN = "\uD83D\uDC68\u200D\uD83C\uDFEB Преподаватель: %teacher% %formattedTeacherTitle%";
+    private static final String TEACHER_PLACEHOLDER = "%teacher%";
+    private static final String FORMATTED_TEACHER_TITLE_PLACEHOLDER = "%formattedTeacherTitle%";
+    private static final String TEACHER_TITLE_PATTERN = "(%teacherTitle%)";
+    private static final String TEACHER_TITLE_PLACEHOLDER = "%teacherTitle%";
+    private static final String TEACHER_IS_NOT_SPECIFIED = "не указан";
+    private static final String LOCATION_PATTERN = "\uD83C\uDFEB Локация: %location%";
+    private static final String LOCATION_PLACEHOLDER = "%location%";
+    private static final String LOCATION_AUDIENCE = "аудитория";
+    private static final String LOCATION_BUILDING = "корпус";
+    private static final String CROSSPAIR_PATTERN = "\uD83D\uDCA0 Занятие проходит %crossPair%";
+    private static final String CROSSPAIR_PLACEHOLDER = "%crossPair%";
+    private static final String CROSSPAIR_ALONE = "*только у вашей группы*";
+    private static final String CROSSPAIR_TOGETHER = "*совместно с другой группой*";
+
     private WeekSign weekSign;
     private String fullSubjectName;
     private String shortSubjectName;
@@ -30,11 +53,25 @@ public class Cell {
 
     public String toLongString() {
         StringBuilder response = new StringBuilder();
-        response.append("\uD83D\uDCD6 Предмет: ").append(fullSubjectName).append('\n')
-                .append("⏳ Время проведения: с ").append(start).append(" до ").append(end).append('\n')
-                .append("\uD83D\uDC68\u200D\uD83C\uDFEB Преподаватель: ").append(Objects.toString(teacherName, "не указан")).append(" (").append(teacherTitle).append(")\n")
-                .append("\uD83C\uDFEB Локация: ").append(formatAuditoryInfo("аудитория", "корпус")).append("\n\n")
-                .append("\uD83D\uDCA0 Занятие проходит ").append(crossPair ? "*совместно с другой группой*" : "*только у вашей группы*");
+        String subject = SUBJECT_PATTERN.replace(SUBJECT_PLACEHOLDER, fullSubjectName);
+        String lessonTime = LESSON_TIME_PATTERN
+                .replace(LESSON_TIME_START_PLACEHOLDER, start)
+                .replace(LESSON_TIME_END_PLACEHOLDER, end);
+        String formattedTeacherTitle = TEACHER_TITLE_PATTERN
+                .replace(TEACHER_TITLE_PLACEHOLDER, Objects.toString(this.teacherTitle, EMPTY_STRING));
+        String teacher = TEACHER_PATTERN
+                .replace(TEACHER_PLACEHOLDER, Objects.toString(teacherName, TEACHER_IS_NOT_SPECIFIED))
+                .replace(FORMATTED_TEACHER_TITLE_PLACEHOLDER, formattedTeacherTitle);
+        String location = LOCATION_PATTERN.replace(LOCATION_PLACEHOLDER,
+                formatAuditoryInfo(LOCATION_AUDIENCE, LOCATION_BUILDING));
+        String crossPairText = CROSSPAIR_PATTERN
+                .replace(CROSSPAIR_PLACEHOLDER, crossPair ? CROSSPAIR_TOGETHER : CROSSPAIR_ALONE);
+
+        response.append(subject).append(NEW_LINE)
+                .append(lessonTime).append(NEW_LINE)
+                .append(teacher).append(NEW_LINE)
+                .append(location).append(NEW_LINE).append(NEW_LINE)
+                .append(crossPairText);
         return response.toString();
     }
 
