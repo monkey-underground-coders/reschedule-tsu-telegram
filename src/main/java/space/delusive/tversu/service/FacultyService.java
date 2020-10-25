@@ -1,6 +1,6 @@
 package space.delusive.tversu.service;
 
-import space.delusive.tversu.entity.WeekSign;
+import space.delusive.tversu.dto.WeekSign;
 
 import java.util.List;
 import java.util.Set;

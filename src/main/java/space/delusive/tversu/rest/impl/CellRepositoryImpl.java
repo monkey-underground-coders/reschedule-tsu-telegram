@@ -5,7 +5,7 @@ import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.entity.Cell;
+import space.delusive.tversu.dto.Cell;
 import space.delusive.tversu.exception.SoldisWhatTheFuckException;
 import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.rest.CellRepository;
@@ -16,6 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CellRepositoryImpl implements CellRepository {
     private static final int NOT_FOUND_STATUS_CODE = 404;
+
     private final DataManager config;
 
     @Override

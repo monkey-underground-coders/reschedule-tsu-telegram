@@ -1,6 +1,7 @@
 package space.delusive.tversu;
 
 import lombok.extern.log4j.Log4j2;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -12,10 +13,10 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import space.delusive.tversu.component.MetricsRegistrar;
-import space.delusive.tversu.entity.Cell;
-import space.delusive.tversu.entity.DayOfWeek;
+import space.delusive.tversu.dto.Cell;
+import space.delusive.tversu.dto.DayOfWeek;
+import space.delusive.tversu.dto.WeekSign;
 import space.delusive.tversu.entity.User;
-import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.NoSuchButtonException;
 import space.delusive.tversu.exception.SoldisWhatTheFuckException;
 import space.delusive.tversu.manager.DataManager;
@@ -49,7 +50,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                            @Qualifier("messages") DataManager messages,
                            UserService userService,
                            FacultyService facultyService,
-                           TimingService timingService, MetricsRegistrar metricsRegistrar) {
+                           TimingService timingService,
+                           MetricsRegistrar metricsRegistrar) {
         super(options);
         this.config = config;
         this.messages = messages;
@@ -87,14 +89,34 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private void handleIncomingMessage(Message msg) throws TelegramApiException {
         long startTime = System.currentTimeMillis();
         Integer userId = msg.getFrom().getId();
-        User user = userService.getUserById(userId);
         metricsRegistrar.registerUserCall(userId);
-        if (user == null) { //user doesn't exist
-            user = registerAndGetUser(userId);
+
+        User user = getUser(userId);
+        SendMessage response = getResponseBasedOnUserState(msg, user);
+        execute(response);
+
+        long timeConsumed = System.currentTimeMillis() - startTime;
+        metricsRegistrar.registerTimeConsumed(timeConsumed);
+    }
+
+    private User getUser(Integer userId) {
+        User user;
+        val optionalUser = userService.getUserById(userId);
+        if (optionalUser.isPresent()) {
+            user = optionalUser.get();
+            updateLastMessageDate(user);
         } else {
-            user.setLastMessageDate(Date.valueOf(LocalDate.now()));
-            userService.updateUser(user);
+            user = registerAndGetUser(userId);
         }
+        return user;
+    }
+
+    private void updateLastMessageDate(User user) {
+        user.setLastMessageDate(Date.valueOf(LocalDate.now()));
+        userService.updateUser(user);
+    }
+
+    private SendMessage getResponseBasedOnUserState(Message message, User user) {
         SendMessage response = null;
         try {
             switch (user.getState()) {
@@ -104,33 +126,30 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 case CHOOSING_COURSE:
                 case CHOOSING_GROUP:
                 case CHOOSING_SUBGROUP:
-                    response = messageOnRegistering(msg, user);
+                    response = messageOnRegistering(message, user);
                     break;
                 case MAIN_MENU:
-                    response = sendMenuMessage(msg, user);
+                    response = sendMenuMessage(message, user);
                     break;
                 case CHOOSING_DAY_OF_WEEK:
-                    response = messageOnChoosingDayOfWeek(msg, user);
+                    response = messageOnChoosingDayOfWeek(message, user);
                     break;
                 case SETTINGS_MENU:
-                    response = messageOnSettingsMenu(msg, user);
+                    response = messageOnSettingsMenu(message, user);
                     break;
             }
         } catch (SoldisWhatTheFuckException e) {
-            log.debug(e);
+            log.warn(e);
             response = messageOnSoldisWhatTheFuckException(user);
         }
-        response.setChatId(msg.getChatId())
+        response.setChatId(message.getChatId())
                 .enableMarkdown(true);
-        execute(response);
-        long timeConsumed = System.currentTimeMillis() - startTime;
-        metricsRegistrar.registerTimeConsumed(timeConsumed);
+        return response;
     }
 
     private User registerAndGetUser(long userId) {
-        Date currDate = Date.valueOf(LocalDate.now());
-        userService.addUser(new User(userId, BotState.START, null, null, 0, null, 0, currDate, currDate));
-        return userService.getUserById(userId);
+        return userService.createNewUser(userId)
+                .orElseThrow(() -> new IllegalStateException("Smth went wrong while saving the user"));
     }
 
     private void updateUserWithState(User user, BotState state) {
@@ -144,7 +163,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private SendMessage messageOnSoldisWhatTheFuckException(User user) {
         updateUserWithState(user, BotState.MAIN_MENU);
         return new SendMessage()
-                .setText(messages.getString("groups.was.renamed"))
+                .setText(messages.getString("groups.were.renamed"))
                 .setReplyMarkup(getMenuKeyboard());
     }
 
@@ -482,12 +501,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             WeekSign nextWeekSign = facultyService.getNextWeekSign(user.getFaculty());
             String localizedNextWeekSign = BaseUtils.getLocalizedNameOfWeekSign(nextWeekSign, messages);
             messageText += messages.getString("timing.specified.day.choose.day.warning")
-                    .replaceAll("%week%", localizedNextWeekSign);
+                    .replace("%week%", localizedNextWeekSign);
         } else {
             WeekSign currentWeekSign = facultyService.getCurrentWeekSign(user.getFaculty());
             String localizedCurrentWeekSign = BaseUtils.getLocalizedNameOfWeekSign(currentWeekSign, messages);
             messageText += messages.getString("timing.specified.day.choose.day.current.week.sign")
-                    .replaceAll("%week%", localizedCurrentWeekSign);
+                    .replace("%week%", localizedCurrentWeekSign);
         }
         return new SendMessage()
                 .setText(messageText)
@@ -497,11 +516,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private SendMessage messageOnSettings(User user) {
         SendMessage response = new SendMessage();
         String textResponse = messages.getString("settings")
-                .replaceAll("%faculty%", user.getFaculty())
-                .replaceAll("%program%", user.getProgram())
-                .replaceAll("%course%", String.valueOf(user.getCourse()))
-                .replaceAll("%group%", user.getGroup())
-                .replaceAll("%subgroup%", String.valueOf(user.getSubgroup()));
+                .replace("%faculty%", user.getFaculty())
+                .replace("%program%", user.getProgram())
+                .replace("%course%", String.valueOf(user.getCourse()))
+                .replace("%group%", user.getGroup())
+                .replace("%subgroup%", String.valueOf(user.getSubgroup()));
         updateUserWithState(user, BotState.SETTINGS_MENU);
         return response.setText(textResponse)
                 .setReplyMarkup(getSettingsMenuKeyboard());

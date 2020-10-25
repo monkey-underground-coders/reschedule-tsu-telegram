@@ -1,7 +1,7 @@
 package space.delusive.tversu.util;
 
-import space.delusive.tversu.entity.DayOfWeek;
-import space.delusive.tversu.entity.WeekSign;
+import space.delusive.tversu.dto.DayOfWeek;
+import space.delusive.tversu.dto.WeekSign;
 import space.delusive.tversu.manager.DataManager;
 
 public class BaseUtils {

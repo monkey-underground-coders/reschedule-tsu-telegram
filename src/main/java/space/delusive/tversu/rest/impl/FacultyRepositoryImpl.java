@@ -6,7 +6,7 @@ import kong.unirest.Unirest;
 import kong.unirest.json.JSONObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.entity.WeekSign;
+import space.delusive.tversu.dto.WeekSign;
 import space.delusive.tversu.exception.FailureRequestException;
 import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.rest.FacultyRepository;
