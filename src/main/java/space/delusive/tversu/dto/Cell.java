@@ -1,4 +1,4 @@
-package space.delusive.tversu.entity;
+package space.delusive.tversu.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -121,7 +121,7 @@ public class Cell {
                     .append(".")
                     .append(", ");
         }
-        return stringBuilder.toString().substring(0, stringBuilder.lastIndexOf(","));
+        return stringBuilder.substring(0, stringBuilder.lastIndexOf(","));
 
     }
 }

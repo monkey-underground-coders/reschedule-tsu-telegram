@@ -2,10 +2,12 @@ package space.delusive.tversu.service;
 
 import space.delusive.tversu.entity.User;
 
+import java.util.Optional;
+
 public interface UserService {
-    User getUserById(long id);
+    Optional<User> getUserById(long id);
 
-    boolean addUser(User user);
+    Optional<User> createNewUser(long userId);
 
-    boolean updateUser(User user);
+    void updateUser(User user);
 }

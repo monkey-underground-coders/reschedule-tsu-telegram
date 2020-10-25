@@ -1,4 +1,4 @@
-package space.delusive.tversu.entity;
+package space.delusive.tversu.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

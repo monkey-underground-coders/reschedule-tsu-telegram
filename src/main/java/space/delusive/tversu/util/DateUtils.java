@@ -1,6 +1,6 @@
 package space.delusive.tversu.util;
 
-import space.delusive.tversu.entity.DayOfWeek;
+import space.delusive.tversu.dto.DayOfWeek;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

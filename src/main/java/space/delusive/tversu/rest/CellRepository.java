@@ -1,6 +1,6 @@
 package space.delusive.tversu.rest;
 
-import space.delusive.tversu.entity.Cell;
+import space.delusive.tversu.dto.Cell;
 import space.delusive.tversu.exception.SoldisWhatTheFuckException;
 
 import java.util.List;

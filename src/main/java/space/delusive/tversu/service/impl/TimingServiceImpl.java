@@ -2,10 +2,10 @@ package space.delusive.tversu.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.entity.Cell;
-import space.delusive.tversu.entity.DayOfWeek;
+import space.delusive.tversu.dto.Cell;
+import space.delusive.tversu.dto.DayOfWeek;
+import space.delusive.tversu.dto.WeekSign;
 import space.delusive.tversu.entity.User;
-import space.delusive.tversu.entity.WeekSign;
 import space.delusive.tversu.exception.SoldisWhatTheFuckException;
 import space.delusive.tversu.rest.CellRepository;
 import space.delusive.tversu.service.FacultyService;

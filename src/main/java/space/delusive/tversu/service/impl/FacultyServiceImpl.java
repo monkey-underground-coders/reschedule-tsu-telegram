@@ -2,7 +2,7 @@ package space.delusive.tversu.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import space.delusive.tversu.entity.WeekSign;
+import space.delusive.tversu.dto.WeekSign;
 import space.delusive.tversu.rest.FacultyRepository;
 import space.delusive.tversu.service.FacultyService;
 

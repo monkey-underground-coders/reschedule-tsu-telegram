@@ -1,4 +1,4 @@
-package space.delusive.tversu.entity;
+package space.delusive.tversu.dto;
 
 public enum DayOfWeek {
     MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY;
@@ -18,6 +18,10 @@ public enum DayOfWeek {
 
     private int getIndexOf(DayOfWeek day) {
         DayOfWeek[] days = DayOfWeek.values();
-        for (int i = 0; true; i++) if (days[i] == day) return i;
+        for (int i = 0; true; i++) {
+            if (days[i] == day) {
+                return i;
+            }
+        }
     }
 }
