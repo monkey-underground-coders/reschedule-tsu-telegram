@@ -16,7 +16,7 @@ public class Cell {
     private static final String EMPTY_STRING = "";
 
     private static final String SUBJECT_PATTERN = "\uD83D\uDCD6 Предмет: %subject%";
-    private static final String SUBJECT_PLACEHOLDER = "\uD83D\uDCD6 Предмет: %subject%";
+    private static final String SUBJECT_PLACEHOLDER = "%subject%";
     private static final String LESSON_TIME_PATTERN = "⏳ Время проведения: с %start% до %end%";
     private static final String LESSON_TIME_START_PLACEHOLDER = "%start%";
     private static final String LESSON_TIME_END_PLACEHOLDER = "%end%";
@@ -75,6 +75,7 @@ public class Cell {
         return response.toString();
     }
 
+    // TODO: 10/31/2020 refactor this:
     public String toString() {
         StringBuilder response = new StringBuilder();
         response.append(EmojiUtils.getEmojiOfDigit(columnPosition + 1)).append(" *").append(fullSubjectName).append("*\n")
