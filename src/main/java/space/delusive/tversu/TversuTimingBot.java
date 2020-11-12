@@ -458,18 +458,27 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     }
 
     private SendMessage messageOnChoseTomorrowLessons(User user) throws SoldisWhatTheFuckException {
-        StringBuilder responseStringBuilder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         List<Cell> tomorrowLessons = timingService.getTomorrowOrMondayLessons(user);
+        boolean isTodaySaturday = DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY;
         if (tomorrowLessons.isEmpty()) {
-            responseStringBuilder.append(messages.getString("tomorrow.lessons.not.found"));
+            builder.append(messages.getString("tomorrow.lessons.not.found"));
         } else {
-            responseStringBuilder.append(DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY ?
+            builder.append(isTodaySaturday ?
                     messages.getString("tomorrow.lessons.monday") :
                     messages.getString("tomorrow.lessons")).append("\n\n");
-            tomorrowLessons.forEach(cell -> responseStringBuilder.append(cell.toString()).append("\n\n"));
+            tomorrowLessons.forEach(cell -> builder.append(cell.toString()).append("\n\n"));
+        }
+        if (DateUtils.isNowBeginningOfDay() && !isTodaySaturday) {
+            String currentDayName = BaseUtils.getLocalizedNameOfDayInAccusative(DateUtils.getCurrentDayOfWeek(), messages);
+            String tomorrowDayName = BaseUtils.getLocalizedNameOfDayInAccusative(DateUtils.getCurrentDayOfWeek().next(), messages);
+            builder.append("\n")
+                    .append(messages.getString("tomorrow.lessons.day.just.began")
+                            .replace("%tomorrow%", tomorrowDayName)
+                            .replace("%today%", currentDayName));
         }
         return new SendMessage()
-                .setText(responseStringBuilder.toString())
+                .setText(builder.toString())
                 .setReplyMarkup(getMenuKeyboard());
     }
 

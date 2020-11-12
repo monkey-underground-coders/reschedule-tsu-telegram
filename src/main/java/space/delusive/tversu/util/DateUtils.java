@@ -8,8 +8,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 public class DateUtils {
+    private static final ZoneId moscowZoneId = ZoneId.of("Europe/Moscow");
+
     public static DayOfWeek getCurrentDayOfWeek() {
-        LocalDate localDate = LocalDate.now(ZoneId.of("Europe/Moscow"));
+        LocalDate localDate = LocalDate.now(moscowZoneId);
         return DayOfWeek.valueOf(localDate.getDayOfWeek().toString());
     }
 
@@ -35,6 +37,10 @@ public class DateUtils {
     }
 
     public static String getCurrentTime() {
-        return LocalDateTime.now(ZoneId.of("Europe/Moscow")).format(DateTimeFormatter.ofPattern("HH:mm"));
+        return LocalDateTime.now(moscowZoneId).format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    public static boolean isNowBeginningOfDay() {
+        return LocalDateTime.now(moscowZoneId).getHour() <= 5;
     }
 }
