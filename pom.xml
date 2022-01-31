@@ -17,8 +17,8 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <junit.version>5.5.1</junit.version>
-        <telegrambots.version>4.4.0.1</telegrambots.version>
-        <log4j.version>2.12.0</log4j.version>
+        <telegrambots.version>5.6.0</telegrambots.version>
+        <log4j.version>2.17.1</log4j.version>
         <unirest.version>3.4.04</unirest.version>
         <postgres.driver.version>42.2.10.jre7</postgres.driver.version>
         <mysql.driver.version>8.0.20</mysql.driver.version>
@@ -62,6 +62,11 @@
             <version>${log4j.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.konghq</groupId>
             <artifactId>unirest-java</artifactId>
             <version>${unirest.version}</version>
@@ -95,6 +100,7 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>

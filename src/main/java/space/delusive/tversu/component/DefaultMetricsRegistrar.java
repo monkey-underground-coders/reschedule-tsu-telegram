@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 public class DefaultMetricsRegistrar implements MetricsRegistrar {
-    private final Set<Integer> users = new HashSet<>();
+    private final Set<Long> users = new HashSet<>();
     private final MeterRegistry meterRegistry;
     private final UserRepository userRepository;
 
@@ -37,7 +37,7 @@ public class DefaultMetricsRegistrar implements MetricsRegistrar {
         meterRegistry.counter("rt.path.usage", "path", path).increment();
     }
 
-    public void registerUserCall(Integer userId) {
+    public void registerUserCall(long userId) {
         users.add(userId);
     }
 
