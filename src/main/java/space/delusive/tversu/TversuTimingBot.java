@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage.SendMessageBuilder;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -38,6 +39,8 @@ import java.util.function.Supplier;
 @Component
 @Log4j2
 public class TversuTimingBot extends TelegramLongPollingBot {
+    private static final String MARKDOWN_PARSE_MODE = "Markdown";
+
     private final DataManager config;
     private final DataManager messages;
     private final UserService userService;
@@ -46,7 +49,8 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     private final MetricsRegistrar metricsRegistrar;
 
     @Autowired
-    public TversuTimingBot(@Qualifier("options") DefaultBotOptions options, @Qualifier("config") DataManager config,
+    public TversuTimingBot(@Qualifier("options") DefaultBotOptions options,
+                           @Qualifier("config") DataManager config,
                            @Qualifier("messages") DataManager messages,
                            UserService userService,
                            FacultyService facultyService,
@@ -65,10 +69,13 @@ public class TversuTimingBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         boolean isTextMessage = update.hasMessage() && update.getMessage().hasText();
-        if (!isTextMessage || !update.getMessage().isUserMessage()) return;
+        if (!isTextMessage || !update.getMessage().isUserMessage()) {
+            return;
+        }
         Message message = update.getMessage();
+        org.telegram.telegrambots.meta.api.objects.User author = message.getFrom();
         log.info("User (ID: {}, FN: {}, LN: {}) sent message with text: {}",
-                message.getFrom().getId(), message.getFrom().getFirstName(), message.getFrom().getLastName(), message.getText());
+                author.getId(), author.getFirstName(), author.getLastName(), message.getText());
         try {
             handleIncomingMessage(message);
         } catch (TelegramApiException e) {
@@ -88,18 +95,20 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     private void handleIncomingMessage(Message msg) throws TelegramApiException {
         long startTime = System.currentTimeMillis();
-        Integer userId = msg.getFrom().getId();
+        long userId = msg.getFrom().getId();
         metricsRegistrar.registerUserCall(userId);
 
         User user = getUser(userId);
-        SendMessage response = getResponseBasedOnUserState(msg, user);
-        execute(response);
+        execute(getResponseBasedOnUserState(msg, user)
+                .chatId(Long.toString(userId))
+                .parseMode(MARKDOWN_PARSE_MODE)
+                .build());
 
         long timeConsumed = System.currentTimeMillis() - startTime;
         metricsRegistrar.registerTimeConsumed(timeConsumed);
     }
 
-    private User getUser(Integer userId) {
+    private User getUser(long userId) {
         User user;
         val optionalUser = userService.getUserById(userId);
         if (optionalUser.isPresent()) {
@@ -116,8 +125,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         userService.updateUser(user);
     }
 
-    private SendMessage getResponseBasedOnUserState(Message message, User user) {
-        SendMessage response = null;
+    private SendMessageBuilder getResponseBasedOnUserState(Message message, User user) {
         try {
             switch (user.getState()) {
                 case START:
@@ -126,25 +134,19 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 case CHOOSING_COURSE:
                 case CHOOSING_GROUP:
                 case CHOOSING_SUBGROUP:
-                    response = messageOnRegistering(message, user);
-                    break;
+                    return messageOnRegistering(message, user);
                 case MAIN_MENU:
-                    response = sendMenuMessage(message, user);
-                    break;
+                    return sendMenuMessage(message, user);
                 case CHOOSING_DAY_OF_WEEK:
-                    response = messageOnChoosingDayOfWeek(message, user);
-                    break;
+                    return messageOnChoosingDayOfWeek(message, user);
                 case SETTINGS_MENU:
-                    response = messageOnSettingsMenu(message, user);
-                    break;
+                    return messageOnSettingsMenu(message, user);
             }
         } catch (SoldisWhatTheFuckException e) {
             log.warn(e);
-            response = messageOnSoldisWhatTheFuckException(user);
+            return messageOnSoldisWhatTheFuckException(user);
         }
-        response.setChatId(message.getChatId())
-                .enableMarkdown(true);
-        return response;
+        return null;
     }
 
     private User registerAndGetUser(long userId) {
@@ -160,11 +162,11 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // exception messages:
 
-    private SendMessage messageOnSoldisWhatTheFuckException(User user) {
+    private SendMessageBuilder messageOnSoldisWhatTheFuckException(User user) {
         updateUserWithState(user, BotState.MAIN_MENU);
-        return new SendMessage()
-                .setText(messages.getString("groups.were.renamed"))
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(messages.getString("groups.were.renamed"))
+                .replyMarkup(getMenuKeyboard());
     }
 
     // :exception messages
@@ -172,88 +174,82 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // register messages:
 
-    private SendMessage messageOnRegistering(Message msg, User user) {
-        SendMessage response = null;
+    private SendMessageBuilder messageOnRegistering(Message msg, User user) {
         BotState state = user.getState();
         metricsRegistrar.registerPath("/reg/" + state.name().toLowerCase());
         switch (state) {
             case START:
-                response = messageOnStart(user);
-                break;
+                return messageOnStart(user);
             case CHOOSING_FACULTY:
-                response = messageOnChoosingFaculty(msg, user);
-                break;
+                return messageOnChoosingFaculty(msg, user);
             case CHOOSING_PROGRAM:
-                response = messageOnChoosingProgram(msg, user);
-                break;
+                return messageOnChoosingProgram(msg, user);
             case CHOOSING_COURSE:
-                response = messageOnChoosingCourse(msg, user);
-                break;
+                return messageOnChoosingCourse(msg, user);
             case CHOOSING_GROUP:
-                response = messageOnChoosingGroup(msg, user);
-                break;
+                return messageOnChoosingGroup(msg, user);
             case CHOOSING_SUBGROUP:
-                response = messageOnChoosingSubgroup(msg, user);
-                break;
+                return messageOnChoosingSubgroup(msg, user);
         }
-        return response;
+        return null;
     }
 
-    private SendMessage messageOnStart(User user) {
-        SendMessage response = new SendMessage();
-        response.setText(messages.getString("start"))
-                .setReplyMarkup(getFacultiesKeyboard());
+    private SendMessageBuilder messageOnStart(User user) {
+        SendMessageBuilder response = SendMessage.builder()
+                .text(messages.getString("start"))
+                .replyMarkup(getFacultiesKeyboard())
+                .chatId(Long.toString(user.getId()));
         updateUserWithState(user, BotState.CHOOSING_FACULTY);
         return response;
     }
 
-    private SendMessage messageOnChoosingFaculty(Message request, User user) {
-        SendMessage response = new SendMessage();
+    private SendMessageBuilder messageOnChoosingFaculty(Message request, User user) {
+        SendMessageBuilder response = SendMessage.builder();
         if (!facultyService.getFaculties().contains(request.getText())) {
-            response.setText(messages.getString("invalid.faculty"));
-            response.setReplyMarkup(getFacultiesKeyboard());
+            response.text(messages.getString("invalid.faculty"))
+                    .replyMarkup(getFacultiesKeyboard());
         } else {
             user.setFaculty(request.getText());
             updateUserWithState(user, BotState.CHOOSING_PROGRAM);
-            response.setText(messages.getString("choose.program"));
-            response.setReplyMarkup(getProgramKeyboard(request.getText()));
+            response.text(messages.getString("choose.program"))
+                    .replyMarkup(getProgramKeyboard(request.getText()));
         }
         return response;
     }
 
-    private SendMessage messageOnChoosingProgram(Message request, User user) {
+    private SendMessageBuilder messageOnChoosingProgram(Message request, User user) {
         return processBackButtonWhileRegister(request, user, getFacultiesKeyboard(), "back.to.faculties")
                 .orElseGet(() -> {
-                    SendMessage response = new SendMessage();
+                    SendMessageBuilder response = SendMessage.builder();
                     if (!facultyService.getPrograms(user.getFaculty()).contains(request.getText())) {
-                        response.setText(messages.getString("invalid.program"));
-                        response.setReplyMarkup(getProgramKeyboard(user.getFaculty()));
+                        response.text(messages.getString("invalid.program"))
+                                .replyMarkup(getProgramKeyboard(user.getFaculty()));
                     } else {
                         user.setProgram(request.getText());
                         updateUserWithState(user, BotState.CHOOSING_COURSE);
-                        response.setText(messages.getString("choose.course"));
-                        response.setReplyMarkup(getCoursesKeyboard(user));
+                        response.text(messages.getString("choose.course"))
+                                .replyMarkup(getCoursesKeyboard(user));
                     }
-                    return (response);
+                    return response;
                 });
     }
 
-    private SendMessage messageOnChoosingCourse(Message request, User user) {
-        Supplier<SendMessage> sendMessageSupplier = () -> {
-            SendMessage response = new SendMessage();
+    private SendMessageBuilder messageOnChoosingCourse(Message request, User user) {
+        Supplier<SendMessageBuilder> sendMessageSupplier = () -> {
+            SendMessageBuilder response = SendMessage.builder();
             try {
                 int course = Integer.parseInt(request.getText());
                 if (facultyService.getCourses(user.getFaculty(), user.getProgram()).contains(course)) {
                     user.setCourse(course);
                     updateUserWithState(user, BotState.CHOOSING_GROUP);
-                    response.setText(messages.getString("choose.group"));
-                    response.setReplyMarkup(getGroupsKeyboard(user));
+                    response.text(messages.getString("choose.group"))
+                            .replyMarkup(getGroupsKeyboard(user));
                 } else {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException e) {
-                response.setText(messages.getString("invalid.course"));
-                response.setReplyMarkup(getCoursesKeyboard(user));
+                response.text(messages.getString("invalid.course"))
+                        .replyMarkup(getCoursesKeyboard(user));
             }
             return response;
         };
@@ -261,25 +257,25 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .orElseGet(sendMessageSupplier);
     }
 
-    private SendMessage messageOnChoosingGroup(Message request, User user) {
-        Supplier<SendMessage> sendMessageSupplier = () -> {
-            SendMessage response = new SendMessage();
+    private SendMessageBuilder messageOnChoosingGroup(Message request, User user) {
+        Supplier<SendMessageBuilder> sendMessageSupplier = () -> {
+            SendMessageBuilder response = SendMessage.builder();
             var groups = facultyService.getGroups(user.getFaculty(), user.getProgram(), user.getCourse());
             if (!groups.contains(request.getText())) {
-                response.setText(messages.getString("invalid.group"));
-                response.setReplyMarkup(getGroupsKeyboard(user));
+                response.text(messages.getString("invalid.group"))
+                        .replyMarkup(getGroupsKeyboard(user));
             } else {
                 user.setGroup(request.getText());
                 int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
                 if (subgroups == 0) {
                     user.setSubgroup(0);
                     updateUserWithState(user, BotState.MAIN_MENU);
-                    response.setText(messages.getString("register.end"));
-                    response.setReplyMarkup(getMenuKeyboard());
+                    response.text(messages.getString("register.end"))
+                            .replyMarkup(getMenuKeyboard());
                 } else {
                     updateUserWithState(user, BotState.CHOOSING_SUBGROUP);
-                    response.setText(messages.getString("choose.subgroup"));
-                    response.setReplyMarkup(getSubgroupsKeyboard(user));
+                    response.text(messages.getString("choose.subgroup"))
+                            .replyMarkup(getSubgroupsKeyboard(user));
                 }
             }
             return response;
@@ -288,9 +284,9 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .orElseGet(sendMessageSupplier);
     }
 
-    private SendMessage messageOnChoosingSubgroup(Message request, User user) {
-        Supplier<SendMessage> sendMessageSupplier = () -> {
-            SendMessage response = new SendMessage();
+    private SendMessageBuilder messageOnChoosingSubgroup(Message request, User user) {
+        Supplier<SendMessageBuilder> sendMessageSupplier = () -> {
+            SendMessageBuilder response = SendMessage.builder();
             int subgroups = facultyService.getSubgroupsCount(user.getFaculty(), user.getProgram(), user.getCourse(), user.getGroup());
             int subgroup;
             try {
@@ -300,12 +296,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 } else {
                     user.setSubgroup(subgroup);
                     updateUserWithState(user, BotState.MAIN_MENU);
-                    response.setText(messages.getString("register.end"));
-                    response.setReplyMarkup(getMenuKeyboard());
+                    response.text(messages.getString("register.end"))
+                            .replyMarkup(getMenuKeyboard());
                 }
             } catch (NumberFormatException e) {
-                response.setText(messages.getString("invalid.subgroup"));
-                response.setReplyMarkup(getSubgroupsKeyboard(user));
+                response.text(messages.getString("invalid.subgroup"))
+                        .replyMarkup(getSubgroupsKeyboard(user));
             }
             return response;
         };
@@ -313,15 +309,15 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .orElseGet(sendMessageSupplier);
     }
 
-    private Optional<SendMessage> processBackButtonWhileRegister(Message request, User user, ReplyKeyboardMarkup replyKeyboardMarkup, String messagePlaceholder) {
+    private Optional<SendMessageBuilder> processBackButtonWhileRegister(Message request, User user, ReplyKeyboardMarkup replyKeyboardMarkup, String messagePlaceholder) {
         boolean isNotBackButtonPressed = !request.getText().equals(Button.TO_PREVIOUS_STAGE.getLocalizedName());
         if (isNotBackButtonPressed) {
             return Optional.empty();
         }
-        SendMessage response = new SendMessage();
         updateUserWithState(user, BotState.getByOrdinal(user.getState().ordinal() - 1));
-        response.setText(messages.getString(messagePlaceholder));
-        response.setReplyMarkup(replyKeyboardMarkup);
+        SendMessageBuilder response = SendMessage.builder()
+                .text(messages.getString(messagePlaceholder))
+                .replyMarkup(replyKeyboardMarkup);
         return Optional.of(response);
     }
 
@@ -374,48 +370,39 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // main menu messages:
 
-    private SendMessage sendMenuMessage(Message request, User user) throws SoldisWhatTheFuckException {
+    private SendMessageBuilder sendMenuMessage(Message request, User user) throws SoldisWhatTheFuckException {
         Button userChoice;
         try {
             userChoice = Button.of(request.getText());
         } catch (NoSuchButtonException e) {
             log.debug(e);
-            return new SendMessage()
-                    .setText(messages.getString("main.menu.invalid.choice"))
-                    .setReplyMarkup(getMenuKeyboard());
+            return SendMessage.builder()
+                    .text(messages.getString("main.menu.invalid.choice"))
+                    .replyMarkup(getMenuKeyboard());
         }
-        SendMessage response = null;
         metricsRegistrar.registerPath("/menu/" + userChoice.name().toLowerCase());
         switch (userChoice) {
             case CURRENT_LESSON:
-                response = messageOnChoseCurrentLesson(user);
-                break;
+                return messageOnChoseCurrentLesson(user);
             case NEXT_LESSON:
-                response = messageOnChoseNextLesson(user);
-                break;
+                return messageOnChoseNextLesson(user);
             case TODAY_LESSONS:
-                response = messageOnChoseTodayLessons(user);
-                break;
+                return messageOnChoseTodayLessons(user);
             case TOMORROW_LESSONS:
-                response = messageOnChoseTomorrowLessons(user);
-                break;
+                return messageOnChoseTomorrowLessons(user);
             case REMAINING_LESSONS_OF_WEEK:
-                response = messageOnChoseRemainingLessonsOfWeek(user);
-                break;
+                return messageOnChoseRemainingLessonsOfWeek(user);
             case LESSONS_OF_SPECIFIED_DAY:
-                response = messageOnChoseLessonsOfSpecifiedDay(user);
-                break;
+                return messageOnChoseLessonsOfSpecifiedDay(user);
             case SETTINGS:
-                response = messageOnSettings(user);
-                break;
+                return messageOnSettings(user);
             case FEEDBACK:
-                response = messageOnFeedback();
-                break;
+                return messageOnFeedback();
         }
-        return response;
+        return null;
     }
 
-    private SendMessage messageOnChoseCurrentLesson(User user) throws SoldisWhatTheFuckException {
+    private SendMessageBuilder messageOnChoseCurrentLesson(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> currentLesson = timingService.getCurrentLesson(user);
         if (currentLesson.isPresent()) {
@@ -424,12 +411,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         } else {
             responseStringBuilder.append(messages.getString("current.lesson.not.found"));
         }
-        return new SendMessage()
-                .setText(responseStringBuilder.toString())
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(responseStringBuilder.toString())
+                .replyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseNextLesson(User user) throws SoldisWhatTheFuckException {
+    private SendMessageBuilder messageOnChoseNextLesson(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Optional<Cell> nextLesson = timingService.getNextLesson(user);
         if (nextLesson.isPresent()) {
@@ -438,12 +425,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         } else {
             responseStringBuilder.append(messages.getString("next.lesson.not.found"));
         }
-        return new SendMessage()
-                .setText(responseStringBuilder.toString())
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(responseStringBuilder.toString())
+                .replyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseTodayLessons(User user) throws SoldisWhatTheFuckException {
+    private SendMessageBuilder messageOnChoseTodayLessons(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         List<Cell> todayLessons = timingService.getTodayLessons(user);
         if (todayLessons.isEmpty()) {
@@ -452,12 +439,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             responseStringBuilder.append(messages.getString("today.lessons")).append("\n\n");
             todayLessons.forEach(cell -> responseStringBuilder.append(cell).append("\n\n"));
         }
-        return new SendMessage()
-                .setText(responseStringBuilder.toString())
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(responseStringBuilder.toString())
+                .replyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseTomorrowLessons(User user) throws SoldisWhatTheFuckException {
+    private SendMessageBuilder messageOnChoseTomorrowLessons(User user) throws SoldisWhatTheFuckException {
         StringBuilder builder = new StringBuilder();
         List<Cell> tomorrowLessons = timingService.getTomorrowOrMondayLessons(user);
         boolean isTodaySaturday = DateUtils.getCurrentDayOfWeek() == DayOfWeek.SATURDAY;
@@ -477,12 +464,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                             .replace("%tomorrow%", tomorrowDayName)
                             .replace("%today%", currentDayName));
         }
-        return new SendMessage()
-                .setText(builder.toString())
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(builder.toString())
+                .replyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseRemainingLessonsOfWeek(User user) throws SoldisWhatTheFuckException {
+    private SendMessageBuilder messageOnChoseRemainingLessonsOfWeek(User user) throws SoldisWhatTheFuckException {
         StringBuilder responseStringBuilder = new StringBuilder();
         Map<DayOfWeek, List<Cell>> remainingLessonsOfWeek = timingService.getRemainingLessonsOfWeek(user);
         if (remainingLessonsOfWeek.isEmpty()) {
@@ -498,12 +485,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 responseStringBuilder.append("\n");
             });
         }
-        return new SendMessage()
-                .setText(responseStringBuilder.toString())
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(responseStringBuilder.toString())
+                .replyMarkup(getMenuKeyboard());
     }
 
-    private SendMessage messageOnChoseLessonsOfSpecifiedDay(User user) {
+    private SendMessageBuilder messageOnChoseLessonsOfSpecifiedDay(User user) {
         updateUserWithState(user, BotState.CHOOSING_DAY_OF_WEEK);
         String messageText = messages.getString("timing.specified.day.choose.day");
         if (DateUtils.getCurrentDayOfWeek() == DayOfWeek.SUNDAY) {
@@ -517,13 +504,12 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             messageText += messages.getString("timing.specified.day.choose.day.current.week.sign")
                     .replace("%week%", localizedCurrentWeekSign);
         }
-        return new SendMessage()
-                .setText(messageText)
-                .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
+        return SendMessage.builder()
+                .text(messageText)
+                .replyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
     }
 
-    private SendMessage messageOnSettings(User user) {
-        SendMessage response = new SendMessage();
+    private SendMessageBuilder messageOnSettings(User user) {
         String textResponse = messages.getString("settings")
                 .replace("%faculty%", user.getFaculty())
                 .replace("%program%", user.getProgram())
@@ -531,14 +517,15 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                 .replace("%group%", user.getGroup())
                 .replace("%subgroup%", String.valueOf(user.getSubgroup()));
         updateUserWithState(user, BotState.SETTINGS_MENU);
-        return response.setText(textResponse)
-                .setReplyMarkup(getSettingsMenuKeyboard());
+        return SendMessage.builder()
+                .text(textResponse)
+                .replyMarkup(getSettingsMenuKeyboard());
     }
 
-    private SendMessage messageOnFeedback() {
-        return new SendMessage()
-                .setText(messages.getString("feedback"))
-                .setReplyMarkup(getMenuKeyboard());
+    private SendMessageBuilder messageOnFeedback() {
+        return SendMessage.builder()
+                .text(messages.getString("feedback"))
+                .replyMarkup(getMenuKeyboard());
     }
 
     // :main menu messages
@@ -559,7 +546,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return keyboardManager.getKeyboard();
     }
 
-    private ReplyKeyboardMarkup getKeyboardOfWorkingDaysForTwoWeeks() { // oh god...
+    private ReplyKeyboardMarkup getKeyboardOfWorkingDaysForTwoWeeks() {
         KeyboardManager keyboardManager = new KeyboardManagerImpl(2);
         keyboardManager.addItem(Button.MONDAY_PLUS_WEEK);
         keyboardManager.addItem(Button.MONDAY_MINUS_WEEK);
@@ -588,7 +575,7 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // choosing day of week while want to get timing of specific day:
 
-    private SendMessage messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException { // TODO: 3/3/2020 refactor this shit
+    private SendMessageBuilder messageOnChoosingDayOfWeek(Message request, User user) throws SoldisWhatTheFuckException { // TODO: 3/3/2020 refactor this shit
         metricsRegistrar.registerPath("/main/day_schedule");
         String messageText = request.getText();
         String[] splitButtonName;
@@ -596,18 +583,19 @@ public class TversuTimingBot extends TelegramLongPollingBot {
             splitButtonName = Button.of(messageText).toString().split("_");
         } catch (NoSuchButtonException e) {
             log.debug(e);
-            return new SendMessage()
-                    .setText(messages.getString("timing.specified.day.invalid"))
-                    .setReplyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
+            return SendMessage.builder()
+                    .text(messages.getString("timing.specified.day.invalid"))
+                    .replyMarkup(getKeyboardOfWorkingDaysForTwoWeeks());
         }
         DayOfWeek dayOfWeek = DayOfWeek.valueOf(splitButtonName[0]);
         WeekSign weekSign = WeekSign.valueOf(splitButtonName[1]);
         List<Cell> lessonsOfSpecifiedDay = timingService.getLessonsOfSpecifiedDay(user, dayOfWeek, weekSign);
-        SendMessage response = new SendMessage();
+        SendMessageBuilder response = SendMessage.builder()
+                .chatId(Long.toString(user.getId()));
         if (lessonsOfSpecifiedDay.isEmpty()) {
             log.warn("There are no lessons found for faculty \"{}\", course \"{}\", group \"{}\" and subgroup \"{}\"",
                     user.getFaculty(), user.getCourse(), user.getGroup(), user.getSubgroup());
-            response.setText(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages,
+            response.text(BaseUtils.getFormattedMessageInAccusative(dayOfWeek, weekSign, messages,
                     "timing.specified.day.no.lessons"));
         } else {
             StringBuilder stringBuilder = new StringBuilder(
@@ -616,10 +604,10 @@ public class TversuTimingBot extends TelegramLongPollingBot {
                             .replaceAll("%week%", BaseUtils.getLocalizedNameOfWeekSign(weekSign, messages)))
                     .append("\n\n");
             lessonsOfSpecifiedDay.forEach(cell -> stringBuilder.append(cell.toString()).append("\n\n"));
-            response.setText(stringBuilder.toString());
+            response.text(stringBuilder.toString());
         }
         updateUserWithState(user, BotState.MAIN_MENU);
-        return response.setReplyMarkup(getMenuKeyboard());
+        return response.replyMarkup(getMenuKeyboard());
     }
 
     // :choosing day of week while want to get timing of specific day
@@ -627,18 +615,18 @@ public class TversuTimingBot extends TelegramLongPollingBot {
 
     // settings menu:
 
-    private SendMessage messageOnSettingsMenu(Message request, User user) {
+    private SendMessageBuilder messageOnSettingsMenu(Message request, User user) {
         Button userChoice;
         try {
             userChoice = Button.of(request.getText());
         } catch (NoSuchButtonException e) {
             log.debug(e);
-            return new SendMessage()
-                    .setText(messages.getString("settings.menu.invalid.choice"))
-                    .setReplyMarkup(getMenuKeyboard());
+            return SendMessage.builder()
+                    .text(messages.getString("settings.menu.invalid.choice"))
+                    .replyMarkup(getMenuKeyboard());
         }
         metricsRegistrar.registerPath("/settings/" + userChoice.name().toLowerCase());
-        SendMessage response = null;
+        SendMessageBuilder response = null;
         switch (userChoice) {
             case CHANGE_SETTINGS:
                 response = messageOnChangeSettings(user);
@@ -650,18 +638,18 @@ public class TversuTimingBot extends TelegramLongPollingBot {
         return response;
     }
 
-    private SendMessage messageOnChangeSettings(User user) {
+    private SendMessageBuilder messageOnChangeSettings(User user) {
         updateUserWithState(user, BotState.CHOOSING_FACULTY);
-        return new SendMessage()
-                .setText(messages.getString("change.settings"))
-                .setReplyMarkup(getFacultiesKeyboard());
+        return SendMessage.builder()
+                .text(messages.getString("change.settings"))
+                .replyMarkup(getFacultiesKeyboard());
     }
 
-    private SendMessage messageOnBackToMainMenu(User user) {
+    private SendMessageBuilder messageOnBackToMainMenu(User user) {
         updateUserWithState(user, BotState.MAIN_MENU);
-        return new SendMessage()
-                .setText(messages.getString("settings.menu.back.to.main.menu"))
-                .setReplyMarkup(getMenuKeyboard());
+        return SendMessage.builder()
+                .text(messages.getString("settings.menu.back.to.main.menu"))
+                .replyMarkup(getMenuKeyboard());
     }
 
     // :settings menu

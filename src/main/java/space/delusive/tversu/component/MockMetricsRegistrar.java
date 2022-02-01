@@ -7,7 +7,7 @@ public class MockMetricsRegistrar implements MetricsRegistrar {
     }
 
     @Override
-    public void registerUserCall(Integer userId) {
+    public void registerUserCall(long userId) {
 
     }
 
