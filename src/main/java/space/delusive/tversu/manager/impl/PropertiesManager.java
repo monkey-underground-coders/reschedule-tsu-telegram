@@ -1,6 +1,8 @@
 package space.delusive.tversu.manager.impl;
 
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.core.io.Resource;
 import space.delusive.tversu.exception.PropertiesException;
 import space.delusive.tversu.manager.DataManager;
 
@@ -18,22 +20,22 @@ import java.util.Properties;
 
 @Log4j2
 public class PropertiesManager implements DataManager {
-    private final Properties properties = new Properties();
-    private final InputStream inputStream;
+	private final Properties properties = new Properties();
+	private final InputStream inputStream;
 
-    public PropertiesManager(String fileName) {
-        inputStream = getClass().getResourceAsStream(fileName);
-        if (inputStream == null) throw new PropertiesException("File \"" + fileName + "\" not found!");
-        try {
-            properties.load(inputStream);
-        } catch (IOException ex) {
-            log.error(ex);
-        }
-    }
+	@SneakyThrows
+	public PropertiesManager(Resource resource) {
+		inputStream = resource.getInputStream();
+		try {
+			properties.load(inputStream);
+		} catch (IOException ex) {
+			log.error(ex);
+		}
+	}
 
-    /**
-     * Получение int-значения из property файла
-     *
+	/**
+	 * Получение int-значения из property файла
+	 *
      * @param key Ключ
      * @return Значение
      * @throws PropertiesException Либо если property-файл не загружен, либо если передан null

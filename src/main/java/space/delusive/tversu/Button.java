@@ -1,5 +1,6 @@
 package space.delusive.tversu;
 
+import org.springframework.core.io.ClassPathResource;
 import space.delusive.tversu.exception.NoSuchButtonException;
 import space.delusive.tversu.manager.DataManager;
 import space.delusive.tversu.manager.impl.PropertiesManager;
@@ -35,7 +36,7 @@ public enum Button {
     // settings menu:
     CHANGE_SETTINGS("menu.settings.button.change"),
     BACK_TO_MAIN_MENU("menu.settings.button.main.menu");
-    private static final DataManager buttonsProps = new PropertiesManager("/buttons_ru.properties");
+	private static final DataManager buttonsProps = new PropertiesManager(new ClassPathResource("/buttons_ru.properties"));
 
     public static Button of(String buttonText) {
         for (Button value : Button.values()) {
