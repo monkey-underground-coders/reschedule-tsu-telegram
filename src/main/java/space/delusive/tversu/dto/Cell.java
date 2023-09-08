@@ -102,7 +102,8 @@ public class Cell {
         String[] locations = auditoryAddress.split(", ");
         for (String location : locations) {
             String[] locationData = location.split("\\|");
-            messages.add(audienceLabel + " " + locationData[1] + ", " + buildingLabel + " " + locationData[0]);
+			String buildingPart = "-".equals(locationData[0]) ? "" : ", " + buildingLabel + " " + locationData[0];
+            messages.add(audienceLabel + " " + locationData[1] + buildingPart);
         }
         return BaseUtils.capitalizeString(String.join("; ", messages));
     }
@@ -112,6 +113,9 @@ public class Cell {
             return "не указан";
         }
         String[] words = teacherName.split(" ");
+		if (words.length % 3 != 0) {
+			return teacherName;
+		}
         StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; words.length / 3 > i; i++) {
             stringBuilder.append(words[i * 3])
